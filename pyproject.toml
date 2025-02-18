@@ -1,0 +1,36 @@
+[build-system]
+requires = [
+    "setuptools >= 75.8.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "service-apis-py"
+version = "0.0.1"
+description = "Python Generated gRPC client and server interfaces from service api proto service"
+readme = "README.md"
+requires-python = "==3.10.*"
+keywords = [
+    "kin",
+    "agent",
+    "sdk",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: Other/Proprietary License",
+]
+dependencies = ["build>=1.2.2.post1"]
+
+[[project.authors]]
+name = "DigitalKin.ai"
+email = "contact@digitalkin.ai"

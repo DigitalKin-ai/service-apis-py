@@ -1,0 +1,71 @@
+version: "3"
+
+vars:
+  # could use env var
+  PACKAGE_NAME: "service-apis-py"
+
+  PROTO_FOLDER: "service-apis"
+  PROTO_PATH: "{{.PROTO_FOLDER}}/proto"
+
+tasks:
+  install-proto-repo:
+    desc: "Install project proto submodule from repo service-apis"
+    cmds:
+      - git submodule update --init --recursive
+
+  build-proto:
+    desc: "Build project proto form submodule"
+    cmds:
+      - buf dep update {{.PROTO_PATH}}
+      - buf generate {{.PROTO_PATH}} --template {{.PROTO_PATH}}/buf.gen.py.yaml -o {{.PACKAGE_NAME}} --path {{.PROTO_PATH}}/digitalkin/module --path {{.PROTO_PATH}}/digitalkin/module_registry --path {{.PROTO_PATH}}/google
+
+  venv:
+    desc: "Install project venv"
+    cmds:
+      - uv venv --python 3.10
+
+  install-deps:
+    desc: "Install project dependencies from pyproject.toml"
+    cmds:
+      - uv pip compile pyproject.toml
+
+  build-package:
+    desc: "Build the PyPI package (runs your build script)"
+    cmds:
+      - uv run python -m build
+
+  publish-package-test:
+    desc: "Publish the package to the PyPI's test env"
+    cmds:
+      - uv publish
+
+  test-package:
+    desc: "Test if the the PyPI package is well published"
+    cmds:
+      - uv run --with {{.PACKAGE_NAME}} --no-project -- python -c \"import {{.PACKAGE_NAME}}\"
+
+  gen-proto:
+    desc: "Install, update and build protobuff file for python"
+    deps:
+      - install-proto-repo
+      - build-proto
+
+  generate-package:
+    desc: "Install, update and build protobuff file for python"
+    deps:
+      - venv
+      - install-deps
+      - build-package
+
+  test-publish:
+    desc: "push and test the package in a test env"
+    deps:
+      - publish-package-test
+      - test-package
+
+  all:
+    desc: "Run all steps: init, install, and build"
+    deps:
+      - gen-proto
+      - generate-package
+      - test-publish
