@@ -6,11 +6,11 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "service-apis-py"
+name = "service_apis_py"
 version = "0.0.1"
 description = "Python Generated gRPC client and server interfaces from service api proto service"
 readme = "README.md"
-requires-python = "==3.10.*"
+requires-python = ">=3.10"
 keywords = [
     "kin",
     "agent",
@@ -29,7 +29,10 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "License :: Other/Proprietary License",
 ]
-dependencies = ["build>=1.2.2.post1"]
+dependencies = [
+    "protobuf>=5.29.3",
+    "protovalidate>=0.7.0",
+]
 
 [[project.authors]]
 name = "DigitalKin.ai"

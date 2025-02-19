@@ -2,6 +2,13 @@
 
 ## Usage
 
+### Create and activate venv
+
+```sh
+task venv
+source .venv/bin/activate
+```
+
 ### Generate Python code from protobuf
 
 The command will update the submodule version of service-apis, update the proto dep and generate the desire Python code.

@@ -2,8 +2,8 @@ version: "3"
 
 vars:
   # could use env var
-  PACKAGE_NAME: "service-apis-py"
-
+  PACKAGE_NAME: "service_apis_py"
+  PACKAGE_DIR: "src/{{.PACKAGE_NAME}}"
   PROTO_FOLDER: "service-apis"
   PROTO_PATH: "{{.PROTO_FOLDER}}/proto"
 
@@ -14,10 +14,21 @@ tasks:
       - git submodule update --init --recursive
 
   build-proto:
-    desc: "Build project proto form submodule"
+    desc: "Build project proto from submodule"
     cmds:
       - buf dep update {{.PROTO_PATH}}
-      - buf generate {{.PROTO_PATH}} --template {{.PROTO_PATH}}/buf.gen.py.yaml -o {{.PACKAGE_NAME}} --path {{.PROTO_PATH}}/digitalkin/module --path {{.PROTO_PATH}}/digitalkin/module_registry --path {{.PROTO_PATH}}/google
+      - |
+        buf generate {{.PROTO_PATH}} --template {{.PROTO_PATH}}/buf.gen.py.yaml \
+        --include-imports \
+        -o src/{{.PACKAGE_NAME}} \
+        --path {{.PROTO_PATH}}/digitalkin/module \
+        --path {{.PROTO_PATH}}/digitalkin/module_registry
+
+  process-proto:
+    desc: "Clean project proto import in generated files from submodule"
+    cmds:
+      - |
+        find {{.PACKAGE_DIR}} -type f -name '*.py' -exec sed -i -r 's/^(from|import)[[:space:]]+((google\.api|digitalkin\.|buf\.validate)[^[:space:]]*)/\1 {{.PACKAGE_NAME}}.\2/' {} +
 
   venv:
     desc: "Install project venv"
@@ -32,7 +43,10 @@ tasks:
   build-package:
     desc: "Build the PyPI package (runs your build script)"
     cmds:
-      - uv run python -m build
+      - |
+        # Find all directories within the target directory and add __init__.py if not present
+        find "{{.PACKAGE_DIR}}" -type d -exec bash -c 'touch "$0/__init__.py"' {} \;
+      - uv build
 
   publish-package-test:
     desc: "Publish the package to the PyPI's test env"
@@ -44,28 +58,33 @@ tasks:
     cmds:
       - uv run --with {{.PACKAGE_NAME}} --no-project -- python -c \"import {{.PACKAGE_NAME}}\"
 
+  clean:
+    desc: "Test if the the PyPI package is well published"
+    cmds:
+      - rm -rf dist src
+
   gen-proto:
     desc: "Install, update and build protobuff file for python"
-    deps:
-      - install-proto-repo
-      - build-proto
+    cmds:
+      - task: install-proto-repo
+      - task: build-proto
+      - task: process-proto
 
-  generate-package:
+  gen-package:
     desc: "Install, update and build protobuff file for python"
-    deps:
-      - venv
-      - install-deps
-      - build-package
+    cmds:
+      - task: install-deps
+      - task: build-package
 
   test-publish:
     desc: "push and test the package in a test env"
-    deps:
-      - publish-package-test
-      - test-package
+    cmds:
+      - task: publish-package-test
+      - task: test-package
 
   all:
     desc: "Run all steps: init, install, and build"
-    deps:
-      - gen-proto
-      - generate-package
-      - test-publish
+    cmds:
+      - task: gen-proto
+      - task: gen-package
+      # - test-publish
