@@ -6,14 +6,16 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "service_apis_py"
+name = "digitalkin_proto"
 version = "0.0.1"
-description = "Python Generated gRPC client and server interfaces from service api proto service"
+description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = [
+    "digitalkin",
     "kin",
     "agent",
+    "gprc",
     "sdk",
 ]
 classifiers = [

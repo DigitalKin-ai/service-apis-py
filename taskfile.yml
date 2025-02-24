@@ -2,7 +2,7 @@ version: "3"
 
 vars:
   # could use env var
-  PACKAGE_NAME: "service_apis_py"
+  PACKAGE_NAME: "digitalkin_proto"
   PACKAGE_DIR: "src/{{.PACKAGE_NAME}}"
   PROTO_FOLDER: "service-apis"
   PROTO_PATH: "{{.PROTO_FOLDER}}/proto"
