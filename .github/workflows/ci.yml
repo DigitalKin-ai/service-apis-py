@@ -65,8 +65,5 @@ jobs:
     - name: Build package
       run: task build-package
 
-    - name: Build package
-      run: task build-package
-
     - name: Run tests
       run: pytest
