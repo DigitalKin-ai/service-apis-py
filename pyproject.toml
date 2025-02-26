@@ -1,0 +1,76 @@
+[build-system]
+requires = [
+    "setuptools >= 75.8.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "digitalkin_proto"
+version = "0.0.1"
+description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = [
+    "digitalkin",
+    "kin",
+    "agent",
+    "gprc",
+    "sdk",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: Other/Proprietary License",
+]
+dependencies = [
+    "protobuf>=5.29.3",
+    "protovalidate>=0.7.0",
+    "grpcio>=1.59.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "ruff>=0.1.5",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+    "bump2version>=1.0.1",
+    "types-protobuf>=4.24.0.4",
+    "build>=1.0.3",
+    "twine>=4.0.2",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/DigitalKin-ai/service-apis-py"
+"Bug Tracker" = "https://github.com/DigitalKin-ai/service-apis-py/issues"
+"Documentation" = "https://github.com/DigitalKin-ai/service-apis-py/blob/main/README.md"
+
+[[project.authors]]
+name = "DigitalKin.ai"
+email = "contact@digitalkin.ai"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+digitalkin_proto = ["**/*.pyi"]
+
+[tool.ruff]
+src = ["src", "tests"]
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
