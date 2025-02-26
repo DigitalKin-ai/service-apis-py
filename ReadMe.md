@@ -1,62 +1,108 @@
-# service-apis-py
+# digitalkin_proto
 
-## Usage
+[![CI](https://github.com/DigitalKin-ai/service-apis-py/actions/workflows/ci.yml/badge.svg)](https://github.com/DigitalKin-ai/service-apis-py/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/digitalkin_proto.svg)](https://pypi.org/project/digitalkin_proto/)
+[![Python Version](https://img.shields.io/pypi/pyversions/digitalkin_proto.svg)](https://pypi.org/project/digitalkin_proto/)
+[![License](https://img.shields.io/github/license/DigitalKin-ai/service-apis-py)](https://github.com/DigitalKin-ai/service-apis-py/blob/main/LICENSE)
 
-### Create and activate venv
-
-```sh
-task venv
-source .venv/bin/activate
-```
-
-### Generate Python code from protobuf
-
-The command will update the submodule version of service-apis, update the proto dep and generate the desire Python code.
-
-```sh
-task gen-proto
-```
-
-### Generate the Python package 'service-apis-py'
-
-The command generate the Python venv, download the dependencies and build the package.
-
-```sh
-task generate-package
-```
-
-### Publish and test the package
-
-The command push the package to the PyPI's test env and test it.
-
-```sh
-task test-publish
-```
-
-### All-in-one
-
-Execute all the commands
-
-```sh
-task all
-```
+Python Generated gRPC client and server interfaces from Digitalkin's service APIs.
 
 ## Installation
 
-Ensure [buf](https://buf.build/docs/installation) and [protoc](https://grpc.io/docs/protoc-installation/) are installed on your system.
-
-### UV
-
-The project use uv to handle dependencies as well as building the package
-
-```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh 
+```bash
+pip install digitalkin_proto
 ```
 
-### TaskFile
+## Overview
 
-The project use TaskFile to simplify tasks and allow user to seamlessly generate the package with a lot of hidden commands.
+This package provides Python interfaces generated from Digitalkin's Protocol Buffer definitions, enabling seamless integration with Digitalkin services via gRPC.
 
-```sh
-curl -s https://taskfile.dev/install.sh | sh
+## Usage
+
+### Basic Import
+
+```python
+import digitalkin_proto
+from digitalkin_proto.digitalkin.module import module_pb2, module_service_pb2_grpc
 ```
+
+### Working with gRPC Services
+
+Example for connecting to a gRPC service:
+
+```python
+import grpc
+from digitalkin_proto.digitalkin.module import module_service_pb2_grpc
+from digitalkin_proto.digitalkin.module import module_pb2
+
+# Create a gRPC channel and client stub
+channel = grpc.insecure_channel('localhost:50051')
+stub = module_service_pb2_grpc.ModuleServiceStub(channel)
+
+# Create a request object
+request = module_pb2.YourRequestType(
+    field1="value1",
+    field2="value2"
+)
+
+# Call the service
+response = stub.YourServiceMethod(request)
+print(response)
+```
+
+## Development
+
+### Prerequisites
+
+- Python 3.10+
+- [uv](https://astral.sh/uv) - Modern Python package management
+- [buf](https://buf.build/docs/installation) - Protocol buffer toolkit
+- [protoc](https://grpc.io/docs/protoc-installation/) - Protocol Buffers compiler
+- [Task](https://taskfile.dev/) - Task runner
+
+### Setup Development Environment
+
+```bash
+# Clone the repository with submodules
+git clone --recurse-submodules https://github.com/DigitalKin-ai/service-apis-py.git
+cd service-apis-py
+
+# Create and activate venv
+task venv
+source .venv/bin/activate
+
+# Setup development environment
+task setup-dev
+```
+
+### Common Development Tasks
+
+```bash
+# Generate Python code from protobuf definitions
+task gen-proto
+
+# Build the package
+task build-package
+
+# Run tests
+task run-tests
+
+# Format code
+task format
+
+# Lint code
+task lint
+
+# Clean build artifacts
+task clean
+```
+
+### Publishing Process
+
+1. Update code and commit changes
+2. Use the GitHub "Create Release" workflow to bump version (patch, minor, major)
+3. The workflow will automatically create a new release and publish to PyPI
+
+## License
+
+This project is licensed under the terms specified in the LICENSE file.

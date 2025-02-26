@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+/bin/
+
 # C extensions
 *.so
 
@@ -169,3 +171,13 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Project specific
+*_pb2.py
+*_pb2.pyi
+*_pb2_grpc.py
+src/digitalkin_proto/buf/
+src/digitalkin_proto/digitalkin/
+src/digitalkin_proto/google/
+
+.vscode/
