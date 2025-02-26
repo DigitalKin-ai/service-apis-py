@@ -57,6 +57,7 @@ jobs:
       with:
         repository-url: https://test.pypi.org/legacy/
         skip-existing: true
+        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
     - name: Wait for Test PyPI to process the package
       run: sleep 60
@@ -68,3 +69,5 @@ jobs:
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        password: ${{ secrets.PYPI_API_TOKEN }}
