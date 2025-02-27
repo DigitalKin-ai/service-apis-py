@@ -181,3 +181,5 @@ src/digitalkin_proto/digitalkin/
 src/digitalkin_proto/google/
 
 .vscode/
+
+requirements.txt
