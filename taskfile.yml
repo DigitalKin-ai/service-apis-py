@@ -16,33 +16,25 @@ tasks:
   build-proto:
     desc: "Build project proto from submodule"
     cmds:
-      - buf dep update {{.PROTO_PATH}}
+      - mkdir -p src/digitalkin_proto
       - |
-          buf generate {{.PROTO_PATH}} --template {{.PROTO_PATH}}/buf.gen.py.yaml \
-          --include-imports \
-          -o src/{{.PACKAGE_NAME}} \
-          --path {{.PROTO_PATH}}/digitalkin/module \
-          --path {{.PROTO_PATH}}/digitalkin/module_registry
+          # Generate Python code from proto files
+          python -m grpc_tools.protoc \
+            -I"{{.PROTO_PATH}}" \
+            # -I"{{.PROTO_PATH}}/google" \
+            -I"{{.PROTO_PATH}}/buf" \
+            -I"{{.PROTO_PATH}}/digitalkin" \
+            --python_out=src/digitalkin_proto \
+            --grpc_python_out=src/digitalkin_proto \
+            --pyi_out=src/digitalkin_proto \
+            # $(find "{{.PROTO_PATH}}/google" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/buf" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/digitalkin/module" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto")
   process-proto:
     desc: "Clean project proto import in generated files from submodule"
     cmds:
-      - |
-          python -c '
-          import os, re
-          pkg_name = "{{.PACKAGE_NAME}}"
-          pkg_dir = "{{.PACKAGE_DIR}}"
-          pattern = re.compile(r"^(from|import)\s+((google\.api|digitalkin\.|buf\.validate)[^\s]*)")
-          for root, _, files in os.walk(pkg_dir):
-              for file in files:
-                  if file.endswith(".py"):
-                      filepath = os.path.join(root, file)
-                      with open(filepath, "r") as f:
-                          content = f.read()
-                      modified = pattern.sub(r"\1 " + pkg_name + r".\2", content)
-                      if modified != content:
-                          with open(filepath, "w") as f:
-                              f.write(modified)
-                          print(f"Updated imports in {filepath}")'
+      - python -m scripts.fix_imports
   venv:
     desc: "Install project venv"
     cmds:
