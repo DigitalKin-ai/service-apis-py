@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "digitalkin_proto"
-version = "0.0.2"
+version = "0.0.3"
 description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -35,11 +35,11 @@ dependencies = [
     "googleapis-common-protos==1.65.0",
     "protovalidate>=0.7.1",
     "grpcio>=1.70.0",
+    "grpcio-tools>=1.70.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "grpcio-tools>=1.70.0",
     "pytest>=8.3.4",
     "ruff>=0.9.7",
     "mypy>=1.15.0",
