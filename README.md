@@ -26,7 +26,7 @@ gRPC.
 
 ```python
 import digitalkin_proto
-from digitalkin_proto.digitalkin.module import module_pb2, module_service_pb2_grpc
+from digitalkin_proto.digitalkin.module.v1 import module_pb2, module_service_pb2_grpc
 ```
 
 ### Working with gRPC Services
@@ -35,8 +35,8 @@ Example for connecting to a gRPC service:
 
 ```python
 import grpc
-from digitalkin_proto.digitalkin.module import module_service_pb2_grpc
-from digitalkin_proto.digitalkin.module import module_pb2
+from digitalkin_proto.digitalkin.module.v1 import module_service_pb2_grpc
+from digitalkin_proto.digitalkin.module.v1 import module_pb2
 
 # Create a gRPC channel and client stub
 channel = grpc.insecure_channel('localhost:50051')
@@ -71,12 +71,10 @@ print(response)
 git clone --recurse-submodules https://github.com/DigitalKin-ai/service-apis-py.git
 cd service-apis-py
 
-# Create and activate venv
-task venv
+# Setup development environment and activate the venv
+task setup-dev
 source .venv/bin/activate
 
-# Setup development environment
-task setup-dev
 ```
 
 ### Common Development Tasks

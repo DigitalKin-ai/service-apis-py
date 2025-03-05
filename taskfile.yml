@@ -152,7 +152,7 @@ tasks:
   bump-version:
     desc: "Bump package version (type: major, minor, or patch)"
     cmds:
-      - bump2version {{.CLI_ARGS}}
+      - uv run bump2version {{.CLI_ARGS}}
 
   setup-dev:
     desc: "Setup development environment"
