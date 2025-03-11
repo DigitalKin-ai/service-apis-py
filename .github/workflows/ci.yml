@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, dev]
+    branches: [dev]
   pull_request:
     branches: [main, dev]
   workflow_dispatch:
@@ -30,7 +30,9 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install Go Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install buf
         uses: bufbuild/buf-setup-action@v1
@@ -38,9 +40,10 @@ jobs:
           github_token: ${{ github.token }}
 
       - name: Install protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@v3
         with:
           version: "25.1"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache dependencies
         id: cache-uv

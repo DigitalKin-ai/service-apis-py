@@ -8,6 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    environment: pypi
     permissions:
       contents: read
       id-token: write # for trusted publishing
@@ -28,7 +29,9 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install Go Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install buf
         uses: bufbuild/buf-setup-action@v1
@@ -36,9 +39,10 @@ jobs:
           github_token: ${{ github.token }}
 
       - name: Install protoc
-        uses: arduino/setup-protoc@v2
+        uses: arduino/setup-protoc@v3
         with:
           version: "25.1"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: |
@@ -59,7 +63,6 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
       - name: Wait for Test PyPI to process the package
         run: sleep 60
@@ -71,5 +74,3 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
