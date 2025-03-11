@@ -12,4 +12,4 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 try:
     __version__ = version("digitalkin_proto")
 except PackageNotFoundError:
-    __version__ = "0.0.3"
+    __version__ = "0.0.4"
