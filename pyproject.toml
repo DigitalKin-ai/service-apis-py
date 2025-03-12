@@ -1,23 +1,14 @@
 [build-system]
-requires = [
-    "setuptools >= 75.8.0",
-    "wheel",
-]
+requires = ["setuptools >= 75.8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "digitalkin_proto"
-version = "0.0.6"
+version = "0.0.7"
 description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
 readme = "README.md"
 requires-python = ">=3.10"
-keywords = [
-    "digitalkin",
-    "kin",
-    "agent",
-    "gprc",
-    "sdk",
-]
+keywords = ["digitalkin", "kin", "agent", "gprc", "sdk"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -59,7 +50,7 @@ name = "DigitalKin.ai"
 email = "contact@digitalkin.ai"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
