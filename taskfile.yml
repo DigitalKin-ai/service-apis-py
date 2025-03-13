@@ -29,6 +29,9 @@ tasks:
             --pyi_out=src/digitalkin_proto \
             # $(find "{{.PROTO_PATH}}/google" -name "*.proto") \
             $(find "{{.PROTO_PATH}}/buf" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/digitalkin/cost" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/digitalkin/filesystem" -name "*.proto") \
+            $(find "{{.PROTO_PATH}}/digitalkin/storage" -name "*.proto") \
             $(find "{{.PROTO_PATH}}/digitalkin/module" -name "*.proto") \
             $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto")
   process-proto:
