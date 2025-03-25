@@ -1,67 +1,67 @@
 [build-system]
-requires = ["setuptools >= 75.8.0", "wheel"]
-build-backend = "setuptools.build_meta"
+    requires      = [ "setuptools >= 75.8.0", "wheel" ]
+    build-backend = "setuptools.build_meta"
 
 [project]
-name = "digitalkin_proto"
-version = "0.0.8"
-description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
-readme = "README.md"
-requires-python = ">=3.10"
-keywords = ["digitalkin", "kin", "agent", "gprc", "sdk"]
-classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Intended Audience :: Developers",
-    "Operating System :: OS Independent",
-    "Topic :: Software Development :: Libraries",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3 :: Only",
-    "License :: Other/Proprietary License",
-]
-dependencies = [
-    "googleapis-common-protos==1.65.0",
-    "protovalidate>=0.7.1",
-    "grpcio>=1.70.0",
-    "grpcio-tools>=1.70.0",
-]
+    name = "digitalkin_proto"
+    version = "0.0.8"
+    description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
+    readme = "README.md"
+    requires-python = ">=3.10"
+    keywords = [ "digitalkin", "kin", "agent", "gprc", "sdk" ]
+    classifiers = [
+        "Development Status :: 3 - Alpha",
+        "Intended Audience :: Developers",
+        "Operating System :: OS Independent",
+        "Topic :: Software Development :: Libraries",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3 :: Only",
+        "License :: Other/Proprietary License",
+    ]
+    dependencies = [
+        "googleapis-common-protos>=1.69.2",
+        "protovalidate>=0.7.1",
+        "grpcio>=1.71.0",
+        "grpcio-tools>=1.71.0",
+    ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3.4",
-    "ruff>=0.9.7",
-    "mypy>=1.15.0",
-    "pre-commit>=4.1.0",
-    "bump2version>=1.0.1",
-    "build>=1.2.2",
-    "twine>=6.1.0",
-]
+    [project.optional-dependencies]
+        dev = [
+            "pytest>=8.3.4",
+            "ruff>=0.11.2",
+            "mypy>=1.15.0",
+            "pre-commit>=4.2.0",
+            "bump2version>=1.0.1",
+            "build>=1.2.2",
+            "twine>=6.1.0",
+        ]
 
-[project.urls]
-"Homepage" = "https://github.com/DigitalKin-ai/service-apis-py"
-"Bug Tracker" = "https://github.com/DigitalKin-ai/service-apis-py/issues"
-"Documentation" = "https://github.com/DigitalKin-ai/service-apis-py/blob/main/README.md"
+    [project.urls]
+        "Homepage"      = "https://github.com/DigitalKin-ai/service-apis-py"
+        "Bug Tracker"   = "https://github.com/DigitalKin-ai/service-apis-py/issues"
+        "Documentation" = "https://github.com/DigitalKin-ai/service-apis-py/blob/main/README.md"
 
-[[project.authors]]
-name = "DigitalKin.ai"
-email = "contact@digitalkin.ai"
+    [[project.authors]]
+        name  = "DigitalKin.ai"
+        email = "contact@digitalkin.ai"
 
 [tool.setuptools]
-package-dir = { "" = "src" }
+    package-dir = { "" = "src" }
 
-[tool.setuptools.packages.find]
-where = ["src"]
+    [tool.setuptools.packages.find]
+        where = [ "src" ]
 
-[tool.setuptools.package-data]
-digitalkin_proto = ["**/*.pyi"]
+    [tool.setuptools.package-data]
+        digitalkin_proto = [ "**/*.pyi" ]
 
 [tool.ruff]
-src = ["src", "tests"]
-target-version = "py310"
+    src            = [ "src", "tests" ]
+    target-version = "py310"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
+    testpaths    = [ "tests" ]
+    python_files = "test_*.py"
