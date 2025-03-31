@@ -18,22 +18,23 @@ tasks:
     cmds:
       - mkdir -p src/digitalkin_proto
       - |
-          # Generate Python code from proto files
-          python -m grpc_tools.protoc \
-            -I"{{.PROTO_PATH}}" \
-            # -I"{{.PROTO_PATH}}/google" \
-            -I"{{.PROTO_PATH}}/buf" \
-            -I"{{.PROTO_PATH}}/digitalkin" \
-            --python_out=src/digitalkin_proto \
-            --grpc_python_out=src/digitalkin_proto \
-            --pyi_out=src/digitalkin_proto \
-            # $(find "{{.PROTO_PATH}}/google" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/buf" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/digitalkin/cost" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/digitalkin/filesystem" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/digitalkin/storage" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/digitalkin/module" -name "*.proto") \
-            $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto")
+        # Generate Python code from proto files
+        python -m grpc_tools.protoc \
+          -I"{{.PROTO_PATH}}" \
+          # -I"{{.PROTO_PATH}}/google" \
+          -I"{{.PROTO_PATH}}/buf" \
+          -I"{{.PROTO_PATH}}/digitalkin" \
+          --python_out=src/digitalkin_proto \
+          --grpc_python_out=src/digitalkin_proto \
+          --pyi_out=src/digitalkin_proto \
+          # $(find "{{.PROTO_PATH}}/google" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/buf" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/cost" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/filesystem" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/storage" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/module" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto")
+
   process-proto:
     desc: "Clean project proto import in generated files from submodule"
     cmds:
@@ -48,13 +49,13 @@ tasks:
     cmds:
       - uv pip compile pyproject.toml -o requirements.txt
       - |
-          if [ -n "$VIRTUAL_ENV" ] || [ -d ".venv" -a -f ".venv/bin/activate" ]; then
-            echo "Installing in virtual environment"
-            uv pip install -e .
-          else
-            echo "Installing in system Python"
-            uv pip install -e . --system
-          fi
+        if [ -n "$VIRTUAL_ENV" ] || [ -d ".venv" -a -f ".venv/bin/activate" ]; then
+          echo "Installing in virtual environment"
+          uv pip install -e .
+        else
+          echo "Installing in system Python"
+          uv pip install -e . --system
+        fi
 
   dev-deps:
     desc: "Install development dependencies"
@@ -70,8 +71,8 @@ tasks:
     desc: "Build the PyPI package (runs your build script)"
     cmds:
       - |
-          # Find all directories within the target directory and add __init__.py if not present
-          find "{{.PACKAGE_DIR}}" -type d -exec bash -c 'touch "$0/__init__.py"' {} \;
+        # Find all directories within the target directory and add __init__.py if not present
+        find "{{.PACKAGE_DIR}}" -type d -exec bash -c 'touch "$0/__init__.py"' {} \;
       - uv build
 
   publish-package-test:
@@ -92,19 +93,12 @@ tasks:
   run-tests:
     desc: "Run pytest tests"
     cmds:
-      - pytest
+      - uv run pytest
 
-  lint:
-    desc: "Run linting with Ruff"
+  linter:
+    desc: "run linter on the project"
     cmds:
-      - ruff check
-      - ruff format --check
-
-  format:
-    desc: "Format code with Ruff"
-    cmds:
-      - ruff format
-      - ruff check --fix
+      - uv run ruff format . && uv run ruff check --select I --fix . && uv run ruff check . --fix
 
   clean:
     desc: "Remove build artifacts and cache directories"
@@ -119,16 +113,24 @@ tasks:
       - task: clean
       # Save the content of the top-level __init__.py if it exists
       - cp src/{{.PACKAGE_NAME}}/__init__.py /tmp/__init__.py.backup 2>/dev/null || true
+      # Save the content of the top-level py.typed if it exists
+      - cp src/{{.PACKAGE_NAME}}/py.typed /tmp/py.typed.backup 2>/dev/null || true
       # Delete everything in the directory
       - rm -rf src/{{.PACKAGE_NAME}}/*
       # Ensure the directory exists
       - mkdir -p src/{{.PACKAGE_NAME}}
       # Restore the top-level __init__.py file
       - |
-          if [ -f /tmp/__init__.py.backup ]; then
-            cp /tmp/__init__.py.backup src/{{.PACKAGE_NAME}}/__init__.py
-            rm -f /tmp/__init__.py.backup
-          fi
+        if [ -f /tmp/__init__.py.backup ]; then
+          cp /tmp/__init__.py.backup src/{{.PACKAGE_NAME}}/__init__.py
+          rm -f /tmp/__init__.py.backup
+        fi
+      # Restore the top-level py.typed file
+      - |
+        if [ -f /tmp/py.typed.backup ]; then
+          cp /tmp/py.typed.backup src/{{.PACKAGE_NAME}}/py.typed
+          rm -f /tmp/py.typed.backup
+        fi
       # Clean up virtual environment
       - rm -rf .venv
       - rm -rf dist
@@ -141,7 +143,7 @@ tasks:
       - task: process-proto
 
   gen-package:
-    desc: "Install, update and build protobuff file for python"
+    desc: "Install, update and build PyPI package"
     cmds:
       - task: install-deps
       - task: build-package
@@ -158,7 +160,7 @@ tasks:
       - git submodule foreach git pull origin dev
       - git add .
       - |
-          git commit -m "update(service-apis): update submodule latest dev"
+        git commit -m "update(service-apis): update submodule latest dev"
       - bump2version {{.CLI_ARGS}}
 
   setup-dev:
