@@ -33,7 +33,8 @@ tasks:
           $(find "{{.PROTO_PATH}}/digitalkin/filesystem" -name "*.proto") \
           $(find "{{.PROTO_PATH}}/digitalkin/storage" -name "*.proto") \
           $(find "{{.PROTO_PATH}}/digitalkin/module" -name "*.proto") \
-          $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto")
+          $(find "{{.PROTO_PATH}}/digitalkin/module_registry" -name "*.proto") \
+          $(find "{{.PROTO_PATH}}/digitalkin/setup" -name "*.proto")
 
   process-proto:
     desc: "Clean project proto import in generated files from submodule"
