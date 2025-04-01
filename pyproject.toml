@@ -4,7 +4,7 @@
 
 [project]
     name = "digitalkin_proto"
-    version = "0.1.0"
+    version = "0.1.1"
     description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
     readme = "README.md"
     requires-python = ">=3.10"
@@ -20,6 +20,7 @@
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3 :: Only",
+        "Typing :: Typed",
         "License :: Other/Proprietary License",
     ]
     dependencies = [
@@ -56,7 +57,7 @@
         where = [ "src" ]
 
     [tool.setuptools.package-data]
-        digitalkin_proto = [ "**/*.pyi" ]
+        digitalkin_proto = [ "**/*.pyi", "py.typed" ]
 
 [tool.ruff]
     src            = [ "src", "tests" ]
