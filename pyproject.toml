@@ -25,10 +25,10 @@
     ]
     dependencies = [
         "googleapis-common-protos>=1.70.0",
-        "protovalidate>=0.7.1",
-        "grpcio>=1.71.0",
-        "grpcio-tools>=1.71.0",
-    ]
+        "protovalidate>=0.9.0",
+        "grpcio>=1.72.1",
+        "grpcio-tools>=1.72.1",
+]
 
     [project.optional-dependencies]
         dev = [
