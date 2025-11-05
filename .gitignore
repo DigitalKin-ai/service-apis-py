@@ -177,9 +177,10 @@ cython_debug/
 *_pb2.pyi
 *_pb2_grpc.py
 src/digitalkin_proto/buf/
-src/digitalkin_proto/digitalkin/
+src/digitalkin_proto/agentic_mesh_protocol/
 src/digitalkin_proto/google/
 
+.task/
 .vscode/
 
 requirements.txt

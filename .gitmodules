@@ -1,3 +1,4 @@
-[submodule "service-apis"]
-	path = service-apis
-	url = git@github.com:DigitalKin-ai/service-apis.git
+[submodule "agentic-mesh-protocol"]
+	path = agentic-mesh-protocol
+	url = git@github.com:DigitalKin-ai/agentic-mesh-protocol.git
+	branch = feat/init
