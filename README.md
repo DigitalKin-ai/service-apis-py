@@ -26,7 +26,7 @@ gRPC.
 
 ```python
 import digitalkin_proto
-from digitalkin_proto.digitalkin.module.v1 import module_pb2, module_service_pb2_grpc
+from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_pb2, module_service_pb2_grpc
 ```
 
 ### Working with gRPC Services
@@ -35,8 +35,8 @@ Example for connecting to a gRPC service:
 
 ```python
 import grpc
-from digitalkin_proto.digitalkin.module.v1 import module_service_pb2_grpc
-from digitalkin_proto.digitalkin.module.v1 import module_pb2
+from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_service_pb2_grpc
+from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_pb2
 
 # Create a gRPC channel and client stub
 channel = grpc.insecure_channel('localhost:50051')
@@ -59,10 +59,10 @@ print(response)
 
 - Python 3.10+
 - [uv](https://astral.sh/uv) - Modern Python package management
-- [buf](https://buf.build/docs/installation) - Protocol buffer toolkit
-- [protoc](https://grpc.io/docs/protoc-installation/) - Protocol Buffers
-  compiler
 - [Task](https://taskfile.dev/) - Task runner
+- rsync - For copying generated files
+
+Note: `buf` and `protoc` are handled by the submodule via npx, no local installation needed
 
 ### Setup Development Environment
 
@@ -71,26 +71,27 @@ print(response)
 git clone --recurse-submodules https://github.com/DigitalKin-ai/service-apis-py.git
 cd service-apis-py
 
-# Setup development environment and activate the venv
-task setup-dev
-source .venv/bin/activate
+# Setup development environment
+task setup
 
+# Or use the quick dev setup command
+task dev
 ```
 
 ### Common Development Tasks
 
 ```bash
 # Generate Python code from protobuf definitions
-task gen-proto
+task gen
 
 # Build the package
-task build-package
+task build
 
 # Run tests
-task run-tests
+task test
 
 # Format code
-task format
+task fmt
 
 # Lint code
 task lint
@@ -99,9 +100,9 @@ task lint
 task clean
 
 # Bump version
-task bump-version -- major
-task bump-version -- minor
 task bump-version -- patch
+task bump-version -- minor
+task bump-version -- major
 ```
 
 ### Publishing Process

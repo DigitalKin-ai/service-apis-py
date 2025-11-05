@@ -10,14 +10,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -60,16 +63,7 @@ jobs:
           uv pip install pytest ruff --system
 
       - name: Generate Python code from protobuf
-        run: task gen-proto
-
-      - name: Lint with Ruff
-        run: ruff check
-
-      - name: Format check with Ruff
-        run: ruff format --check
-
-      - name: Build package
-        run: task build-package
+        run: task dev
 
       - name: Run tests
         run: pytest
