@@ -7,11 +7,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -39,19 +42,14 @@ jobs:
           version: "25.1"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        run: |
-          uv pip install -e . --system
-          uv pip install pytest build twine --system
-
       - name: Generate Python code from protobuf
-        run: task gen-proto
+        run: task gen
+
+      - name: Install dependencies
+        run: uv sync
 
       - name: Run tests
-        run: pytest
-
-      - name: Build package
-        run: task build-package
+        run: uv run pytest
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
