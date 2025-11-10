@@ -1,4 +1,4 @@
 [submodule "agentic-mesh-protocol"]
 	path = agentic-mesh-protocol
 	url = git@github.com:DigitalKin-ai/agentic-mesh-protocol.git
-	branch = feat/init
+	branch = main
