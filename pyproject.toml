@@ -4,7 +4,7 @@
 
 [project]
     name = "digitalkin_proto"
-    version = "0.2.0-dev3"
+    version = "0.2.0.dev3"
     description = "Python Generated gRPC client and server interfaces from Digitalkin's service apis"
     readme = "README.md"
     requires-python = ">=3.10"
@@ -28,7 +28,7 @@
         "protovalidate>=1.0.0",
         "grpcio>=1.76.0",
         "grpcio-tools>=1.76.0",
-        "protobuf>=6.33.0",
+        "protobuf>=6.33.1",
         "bump-my-version>=1.2.4",
     ]
 
@@ -44,8 +44,8 @@
 # Modern dependency groups (PEP 735) - replaces optional-dependencies
 [dependency-groups]
     dev = [
-        "pytest>=9.0.0",
-        "ruff>=0.14.4",
+        "pytest>=9.0.1",
+        "ruff>=0.14.5",
         "mypy>=1.18.2",
         "pre-commit>=4.4.0",
         "bump-my-version>=1.2.4",
@@ -76,22 +76,5 @@
     python_functions = "test_*"
     addopts          = [ "-v", "--strict-markers", "--tb=short" ]
 
-[tool.bumpversion]
-    current_version = "0.2.0-dev3"
-    parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\-(?P<release>[a-z]+)(?P<build>\\d+))?"
-    serialize = [
-        "{major}.{minor}.{patch}-{release}{build}",
-        "{major}.{minor}.{patch}",
-    ]
-    commit = false
-    tag = false
-
-    [[tool.bumpversion.files]]
-        filename = "pyproject.toml"
-        search   = 'version = "{current_version}"'
-        replace  = 'version = "{new_version}"'
-
-    [[tool.bumpversion.files]]
-        filename = "src/digitalkin_proto/_version.py"
-        search   = '__version__ = "{current_version}"'
-        replace  = '__version__ = "{new_version}"'
+# bump-my-version configuration has been moved to .bumpversion.toml
+# See .bumpversion.toml for versioning configuration
