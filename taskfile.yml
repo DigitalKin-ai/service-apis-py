@@ -281,7 +281,7 @@ tasks:
   # ==============================================================================
 
   bump-version:
-    desc: "Bump package version (type: major, minor, patch, pre_l or pre_n)"
+    desc: "Bump package version (type: major, minor, patch, release_type or release_num)"
     cmds:
       - SKIP=pytest bump-my-version bump {{.CLI_ARGS}}
 
