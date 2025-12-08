@@ -31,16 +31,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ github.token }}
+          node-version: "20"
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "25.1"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install npm dependencies for buf
+        run: task install:amp
 
       - name: Generate Python code from protobuf
         run: task gen
@@ -89,8 +86,8 @@ jobs:
 
         - name: Verify Test PyPI package
           run: |
-            python -m pip install --index-url https://test.pypi.org/simple/ --no-deps digitalkin_proto
-            python -c "import digitalkin_proto; print(digitalkin_proto.__version__)"
+            python -m pip install --index-url https://test.pypi.org/simple/ --no-deps agentic-mesh-protocol
+            python -c "import agentic_mesh_protocol; print(agentic_mesh_protocol.__version__)"
 
   publish-pypi:
     needs: [build, publish-test-pypi]
