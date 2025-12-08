@@ -1,15 +1,5 @@
-"""digitalkin_proto - Python Generated gRPC client and server interfaces.
+"""Digitalkin Protocol Buffer generated gRPC interfaces."""
 
-This package contains generated Python code from Protocol Buffers and gRPC definitions
-for interacting with Digitalkin services.
-"""
+from digitalkin_proto.__version__ import __version__
 
-import os
-import sys
-from importlib.metadata import PackageNotFoundError, version
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-try:
-    __version__ = version("digitalkin_proto")
-except PackageNotFoundError:
-    __version__ = "0.1.16"
+__all__ = ["__version__"]
