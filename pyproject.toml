@@ -66,10 +66,10 @@
     build = [ "build>=1.3.0", "bump-my-version>=1.2.4", "twine>=6.2.0" ]
 
 [tool.setuptools]
-    package-dir = { "" = "src" }
+    package-dir = { "" = "gen" }
 
     [tool.setuptools.packages.find]
-        where = [ "src" ]
+        where = [ "gen" ]
 
     [tool.setuptools.package-data]
         agentic_mesh_protocol = [ "**/*.pyi", "py.typed" ]
@@ -81,4 +81,3 @@
 
 [tool.pytest.ini_options]
     python_files = "test_*.py"
-    testpaths    = [ "tests" ]

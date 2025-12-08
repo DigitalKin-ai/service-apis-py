@@ -31,13 +31,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
         with:
-          node-version: "20"
+          setup_only: true
 
-      - name: Install npm dependencies for buf
-        run: task install:amp
+      - name: Setup submodule
+        run: task install:submodule
 
       - name: Generate Python code from protobuf
         run: task gen
@@ -51,8 +51,8 @@ jobs:
       - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: gen
+          path: gen/
           retention-days: 1
 
   publish-test-pypi:
@@ -67,8 +67,8 @@ jobs:
         - name: Download dist artifacts
           uses: actions/download-artifact@v4
           with:
-            name: dist
-            path: dist/
+            name: gen
+            path: gen/
 
         - name: Publish to Test PyPI
           uses: pypa/gh-action-pypi-publish@release/v1
@@ -101,8 +101,8 @@ jobs:
       - name: Download dist artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: gen
+          path: gen/
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

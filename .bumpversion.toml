@@ -35,11 +35,11 @@
         replace = 'version = "{new_version}"'
         search  = 'version = "{current_version}"'
 
-    [[tool.bumpversion.files]]
-        filename = "src/agentic_mesh_protocol/__version__.py"
-        # Update the fallback version in the __version__.py file
-        replace = '__version__ = "{new_version}"'
-        search  = '__version__ = "{current_version}"'
+#    [[tool.bumpversion.files]]
+#        filename = "src/agentic_mesh_protocol/__version__.py"
+#        # Update the fallback version in the __version__.py file
+#        replace = '__version__ = "{new_version}"'
+#        search  = '__version__ = "{current_version}"'
 
         # Command aliases for convenience (these work with: bump-my-version bump <alias>)
         # Examples:

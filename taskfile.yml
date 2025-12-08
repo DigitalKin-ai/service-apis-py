@@ -1,365 +1,417 @@
 version: "3"
 
-# Modern, optimized Taskfile with dependency tracking and best practices
-
-includes:
-  amp:
-    taskfile: ./agentic-mesh-protocol/Taskfile.yml
-    dir: ./agentic-mesh-protocol
-    optional: true
-
 vars:
   PACKAGE_NAME: agentic_mesh_protocol
-  PACKAGE_DIR: src/{{.PACKAGE_NAME}}
-  BUF_PACKAGE_DIR: src/buf
+  SRC_DIR: gen
+  PACKAGE_DIR: "{{.SRC_DIR}}/{{.PACKAGE_NAME}}"
+  BUF_PACKAGE_DIR: "{{.SRC_DIR}}/buf"
   PROTO_FOLDER: agentic-mesh-protocol
   PROTO_GEN_DIR: "{{.PROTO_FOLDER}}/gen/python"
   PYTHON: uv run
+  DIST_PATH: gen
 
 dotenv: [".env"]
 
 tasks:
-  # ==============================================================================
-  # Default
-  # ==============================================================================
+  # =============================================================================
+  # DEFAULT
+  # =============================================================================
   default:
-    desc: List available tasks
+    desc: "Show available tasks"
     cmds:
       - task --list
+    silent: true
 
-  # ==============================================================================
-  # Setup & Installation
-  # ==============================================================================
+  # =============================================================================
+  # HELP
+  # =============================================================================
+  help:
+    desc: "Explain the main workflows (setup vs install vs build)"
+    silent: true
+    cmds:
+      - |
+        echo ""
+        echo "╔══════════════════════════════════════════════════════════════╗"
+        echo "║              service-apis-py — Task Workflows                ║"
+        echo "╚══════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "  📦 FIRST TIME SETUP"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  task setup"
+        echo "    → Full setup for a new machine or fresh clone."
+        echo "    → Checks required tools (uv, buf, git, rsync, task)."
+        echo "    → Initializes git submodule (agentic-mesh-protocol)."
+        echo "    → Generates Python code from proto files."
+        echo "    → Installs Python dependencies via uv sync."
+        echo ""
+        echo "  🔄 DAILY USAGE"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  task install"
+        echo "    → Same as setup but without the tool validation."
+        echo "    → Use after pulling changes that update the submodule"
+        echo "      or proto files."
+        echo ""
+        echo "  task gen"
+        echo "    → Regenerate Python code from proto files only."
+        echo "    → Use when proto files change but deps are already installed."
+        echo ""
+        echo "  🏗️  BUILD & PUBLISH"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  task build"
+        echo "    → Regenerates code + builds the Python wheel (dist/)."
+        echo "    → Required before publishing."
+        echo "    → Pour changer le dossier de sortie (.tar.gz/.whl), utilisez :"
+        echo "         task build DIST_DIR=mon_dossier"
+        echo "      (par défaut : dist/)"
+        echo ""
+        echo "  task publish:test  → Publish to TestPyPI"
+        echo "  task publish:prod  → Publish to PyPI"
+        echo ""
+        echo "  🔖 VERSIONING"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  task version:current"
+        echo "    → Show current version."
+        echo ""
+        echo "  task bump -- release_num    # 0.2.1.dev1 → 0.2.1.dev2"
+        echo "  task bump -- release_type   # 0.2.1.a0 → 0.2.1.b0 → 0.2.1.rc0 → 0.2.1"
+        echo "  task bump -- patch          # 0.2.1 → 0.2.2  (sans suffixe)"
+        echo "  task bump -- minor          # 0.2.1 → 0.3.0  (sans suffixe)"
+        echo "  task bump -- major          # 0.2.1 → 1.0.0  (sans suffixe)"
+        echo ""
+        echo "  Progression release_type : a → b → dev → final → post → rc"
+        echo ""
+        echo "  task bump -- --new-version 0.3.0.dev1   # version spécifique"
+        echo ""
+        echo "  🧪 QUALITY"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  task lint          → Lint Python + proto files"
+        echo "  task test          → Run test suite"
+        echo "  task ci            → Full CI pipeline (lint + test + build)"
+        echo ""
+        echo "  🔧 REQUIRED TOOLS"
+        echo "  ─────────────────────────────────────────────────────────────"
+        echo "  uv      → https://docs.astral.sh/uv/"
+        echo "  buf     → brew install buf  |  https://buf.build/docs/installation"
+        echo "  task    → https://taskfile.dev/"
+        echo "  git, rsync → via your package manager"
+        echo ""
 
-  init:
-    desc: Initialize git submodules
-    aliases: [submodule]
+  # =============================================================================
+  # SETUP
+  # =============================================================================
+  setup:
+    desc: "First-time setup: validate tools + submodule + python deps"
+    cmds:
+      - task: validate
+      - task: install:submodule
+      - task: gen
+      - task: install:python
+      - echo "✅ Development environment ready!"
+
+  # =============================================================================
+  # INSTALL
+  # =============================================================================
+  install:
+    desc: "Install dependencies after pulling changes (submodule + python)"
+    cmds:
+      - task: install:submodule
+      - task: gen
+      - task: install:python
+
+  install:submodule:
+    desc: "Initialize git submodules"
     cmds:
       - git submodule update --init --recursive
     status:
       - test -f {{.PROTO_FOLDER}}/.git
 
-  install:
-    desc: Install Python dependencies
-    aliases: [deps, sync]
+  install:submodule:update:
+    desc: "Update submodule to latest remote"
+    cmds:
+      - git submodule update --remote --merge {{.PROTO_FOLDER}}
+
+  install:python:
+    desc: "Install Python dependencies"
     cmds:
       - uv sync
     sources:
       - pyproject.toml
       - uv.lock
-    generates:
-      - .venv/**/*
-
-  install:amp:
-    desc: Install agentic-mesh-protocol npm dependencies
-    aliases: [amp-install]
-    deps: [init]
-    cmds:
-      - task: amp:install
-    status:
-      - test -d {{.PROTO_FOLDER}}/node_modules
-
-  setup:
-    desc: Complete development environment setup
-    aliases: [bootstrap]
-    cmds:
-      - task: init
-      - task: amp:install
-      - task: install
-      - task: install:hooks
 
   install:hooks:
-    desc: Install pre-commit hooks
+    desc: "Install pre-commit hooks"
     cmds:
       - "{{.PYTHON}} pre-commit install --install-hooks"
     status:
       - test -f .git/hooks/pre-commit
-    preconditions:
-      - sh: command -v pre-commit >/dev/null 2>&1 || {{.PYTHON}} pre-commit --version
-        msg: "pre-commit not available"
 
-  dev:
-    desc: Quick development setup
+  # =============================================================================
+  # GEN - Code generation
+  # =============================================================================
+  gen:
+    desc: "Generate Python code from proto files"
     cmds:
-      - task: setup
-      - task: gen
-      - echo "Development environment ready!"
+      - task: gen:buf
+      - task: gen:copy
+      - task: gen:scaffold
+      - echo "✅ Proto generation complete!"
 
-  # ==============================================================================
-  # Proto Generation
-  # ==============================================================================
-
-  proto:init:
-    desc: Ensure proto submodule is initialized
+  gen:buf:
+    desc: "Run buf generate (Python only)"
     internal: true
+    deps: [install:submodule]
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: init
-    status:
-      - test -f {{.PROTO_FOLDER}}/.git
-
-  proto:generate:
-    desc: Generate Python code from proto files using buf
-    internal: true
-    deps: ["proto:init", "install:amp"]
-    cmds:
-      - task: amp:generate
+      - buf generate
     sources:
-      - "{{.PROTO_FOLDER}}/proto/**/*.proto"
-      - "{{.PROTO_FOLDER}}/buf.gen.yaml"
+      - "proto/**/*.proto"
+      - "buf.gen.yaml"
     generates:
-      - "{{.PROTO_GEN_DIR}}/**/*.py"
-      - "{{.PROTO_GEN_DIR}}/**/*.pyi"
+      - "gen/python/**/*.py"
+      - "gen/python/**/*.pyi"
 
-  proto:copy:
-    desc: Copy generated proto files to package
+  gen:copy:
+    desc: "Copy generated files to build/"
     internal: true
-    deps: ["proto:generate"]
     cmds:
       - mkdir -p {{.PACKAGE_DIR}}
       - mkdir -p {{.BUF_PACKAGE_DIR}}
-      # Copy agentic_mesh_protocol (content only, preserving __version__.py, __init__.py, py.typed)
-      - rsync -av --delete --exclude='__pycache__' --exclude='__version__.py' --exclude='__init__.py' --exclude='py.typed' {{.PROTO_GEN_DIR}}/agentic_mesh_protocol/ {{.PACKAGE_DIR}}/
-      # Copy buf
-      - rsync -av --delete --exclude='__pycache__' --exclude='__init__.py' {{.PROTO_GEN_DIR}}/buf/ {{.BUF_PACKAGE_DIR}}/
-    sources:
-      - "{{.PROTO_GEN_DIR}}/**/*.py"
-      - "{{.PROTO_GEN_DIR}}/**/*.pyi"
-    generates:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - "{{.BUF_PACKAGE_DIR}}/**/*.py"
+      - rsync -a --delete --exclude='__pycache__' {{.PROTO_GEN_DIR}}/agentic_mesh_protocol/ {{.PACKAGE_DIR}}/
+      - rsync -a --delete --exclude='__pycache__' {{.PROTO_GEN_DIR}}/buf/ {{.BUF_PACKAGE_DIR}}/
 
-  gen:
-    desc: Complete proto generation pipeline
-    aliases: [generate, gen-proto, proto]
-    cmds:
-      - task: proto:init
-      - task: proto:generate
-      - task: proto:copy
-      - task: proto:ensure-init
-      - task: proto:create-namespaces
-      - task: build
-
-    summary: |
-      Generates Python code from Protocol Buffer definitions.
-
-      Steps:
-      1. Initialize submodule
-      2. Run buf generate in agentic-mesh-protocol (via amp:generate)
-         - Generates code for local proto files AND buf.build/bufbuild/protovalidate
-      3. Copy generated files to src/agentic_mesh_protocol/ and src/buf/
-      4. Ensure __init__.py files exist in all directories
-      5. Ensure buf package has __init__.py files
-      6. Build package
-
-  proto:ensure-init:
-    desc: Ensure all directories have __init__.py files
+  gen:scaffold:
+    desc: "Generate package scaffolding (__init__.py, __version__.py, py.typed)"
     internal: true
+    silent: true
     cmds:
-      - find "{{.PACKAGE_DIR}}" -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
-      - find "{{.BUF_PACKAGE_DIR}}" -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
+      - |
+        V=$(grep -m1 'version' pyproject.toml | grep -o '"[^"]*"' | tr -d '"')
+        python3 -c "
+        import pathlib
+        pathlib.Path('{{.PACKAGE_DIR}}/__version__.py').write_text(
+            '\"\"\"Version information for agentic_mesh_protocol package.\"\"\"\\n\\n'
+            'from importlib.metadata import PackageNotFoundError, version\\n\\n'
+            'try:\\n'
+            '    __version__ = version(\"agentic-mesh-protocol\")\\n'
+            'except PackageNotFoundError:\\n'
+            '    __version__ = \"$V\"\\n'
+        )
+        "
+      - touch {{.PACKAGE_DIR}}/py.typed
+      - find {{.SRC_DIR}} -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
 
-  proto:create-namespaces:
-    desc: Ensure buf package has __init__.py files for import compatibility
-    internal: true
+  gen:check:
+    desc: "Verify generated code is up to date"
     cmds:
-      - touch {{.BUF_PACKAGE_DIR}}/__init__.py 2>/dev/null || true
-      - touch {{.BUF_PACKAGE_DIR}}/validate/__init__.py 2>/dev/null || true
+      - task: gen
+      - |
+        if [ -n "$(git status --porcelain {{.SRC_DIR}}/)" ]; then
+          echo "❌ Generated code is out of date. Run 'task gen' and commit."
+          exit 1
+        fi
+      - echo "✅ Generated code is up to date"
 
-  proto:clean:
-    desc: Clean generated proto files (preserves __version__.py, __init__.py, py.typed)
-    cmds:
-      - rm -rf {{.PACKAGE_DIR}}/module {{.PACKAGE_DIR}}/cost {{.PACKAGE_DIR}}/filesystem
-      - rm -rf {{.PACKAGE_DIR}}/module_registry {{.PACKAGE_DIR}}/setup {{.PACKAGE_DIR}}/storage
-      - rm -rf {{.PACKAGE_DIR}}/user_profile
-      - rm -rf {{.BUF_PACKAGE_DIR}}/validate
-      - rm -rf {{.PROTO_FOLDER}}/gen
-
-  proto:lint:
-    desc: Lint proto files with buf
-    cmds:
-      - task: amp:lint
-
-  proto:format:
-    desc: Format proto files with buf
-    cmds:
-      - task: amp:format
-
-  proto:format:check:
-    desc: Check proto file formatting
-    cmds:
-      - task: amp:format:check
-
-  proto:breaking:
-    desc: Check for breaking changes in proto files
-    cmds:
-      - task: amp:breaking
-
-  # ==============================================================================
-  # Code Quality
-  # ==============================================================================
-
-  fmt:
-    desc: Format code with ruff
-    aliases: [format]
-    cmds:
-      - "{{.PYTHON}} ruff format ."
-    sources:
-      - "**/*.py"
-      - .ruff.toml
-      - pyproject.toml
-
-  lint:fix:
-    desc: Lint and auto-fix issues
-    aliases: [fix]
-    cmds:
-      - task: fmt
-      - "{{.PYTHON}} ruff check --fix ."
-
+  # =============================================================================
+  # LINT - Code quality
+  # =============================================================================
   lint:
-    desc: Check code quality (format + lint + type check)
+    desc: "Run all linting (Python + proto)"
     cmds:
-      - task: lint:format
-      - task: lint:ruff
+      - task: lint:py
+      - task: lint:proto
 
-  lint:format:
-    desc: Check code formatting
-    internal: true
-    cmds:
-      - "{{.PYTHON}} ruff format --check --diff ."
-
-  lint:ruff:
-    desc: Lint code with ruff
-    internal: true
+  lint:py:
+    desc: "Lint Python code with ruff"
     cmds:
       - "{{.PYTHON}} ruff check ."
 
-  pre-commit:
-    desc: Run all pre-commit hooks
+  lint:py:fix:
+    desc: "Fix Python linting issues"
     cmds:
-      - "{{.PYTHON}} pre-commit run --all-files"
+      - "{{.PYTHON}} ruff check --fix ."
 
-  # ==============================================================================
-  # Testing
-  # ==============================================================================
+  lint:format:
+    desc: "Format Python code with ruff"
+    cmds:
+      - "{{.PYTHON}} ruff format ."
 
+  lint:format:check:
+    desc: "Check Python formatting (no write)"
+    cmds:
+      - "{{.PYTHON}} ruff format --check --diff ."
+
+  lint:proto:
+    desc: "Lint proto files with buf"
+    dir: "{{.PROTO_FOLDER}}"
+    cmds:
+      - buf lint proto
+
+  lint:proto:format:
+    desc: "Format proto files with buf"
+    dir: "{{.PROTO_FOLDER}}"
+    cmds:
+      - buf format -w proto
+
+  lint:proto:format:check:
+    desc: "Check proto file formatting (no write)"
+    dir: "{{.PROTO_FOLDER}}"
+    cmds:
+      - buf format -d proto --exit-code
+
+  # =============================================================================
+  # TEST
+  # =============================================================================
   test:
-    desc: Run test suite
-    aliases: [t]
+    desc: "Run test suite"
+    deps: [gen, install:python]
     cmds:
       - "{{.PYTHON}} pytest {{.CLI_ARGS}}"
-    sources:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - test/**/*.py
-      - tests/**/*.py
-      - pyproject.toml
 
-  test:watch:
-    desc: Run tests in watch mode
+  test:cov:
+    desc: "Run tests with coverage"
+    deps: [gen, install:python]
     cmds:
-      - "{{.PYTHON}} pytest-watch {{.CLI_ARGS}}"
+      - "{{.PYTHON}} pytest --cov={{.PACKAGE_DIR}} --cov-report=term-missing {{.CLI_ARGS}}"
 
-  # ==============================================================================
-  # Building & Publishing
-  # ==============================================================================
-
+  # =============================================================================
+  # BUILD
+  # =============================================================================
   build:
-    desc: Build Python package
-    aliases: [build-package]
-    deps: ["proto:ensure-init"]
+    desc: "Generate and build Python package"
     cmds:
-      - uv build
+      - task: gen
+      - task: build:wheel
+      - echo "✅ Build complete!"
+
+  build:wheel:
+    desc: "Build Python wheel"
+    internal: true
+    cmds:
+      - uv build --out-dir {{.DIST_PATH}}
     sources:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - "{{.PACKAGE_DIR}}/**/*.pyi"
+      - "{{.SRC_DIR}}/**/*.py"
+      - "{{.SRC_DIR}}/**/*.pyi"
       - pyproject.toml
       - README.md
     generates:
-      - dist/*.whl
-      - dist/*.tar.gz
+      - "{{.DIST_PATH}}/*.whl"
+      - "{{.DIST_PATH}}/*.tar.gz"
+    preconditions:
+      - sh: test -d "{{.PACKAGE_DIR}}"
+        msg: "Generated code not found. Run 'task gen' first."
 
+  # =============================================================================
+  # PUBLISH
+  # =============================================================================
   publish:test:
-    desc: Publish package to TestPyPI
-    aliases: [publish-test]
+    desc: "Publish package to TestPyPI"
     deps: [build]
     cmds:
       - uv publish --repository-url https://test.pypi.org/legacy/ {{.CLI_ARGS}}
     preconditions:
       - sh: test -n "$(ls -A dist 2>/dev/null)"
-        msg: "No built packages found in dist/. Run 'task build' first."
+        msg: "No packages in dist/. Run 'task build' first."
 
   publish:prod:
-    desc: Publish package to PyPI
-    aliases: [publish, release]
+    desc: "Publish package to PyPI"
     deps: [build]
     cmds:
       - uv publish {{.CLI_ARGS}}
     preconditions:
       - sh: test -n "$(ls -A dist 2>/dev/null)"
-        msg: "No built packages found in dist/. Run 'task build' first."
-      - sh: '[ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || echo "WARNING: Not on main branch"'
+        msg: "No packages in dist/. Run 'task build' first."
 
-  # ==============================================================================
-  # Version Management
-  # ==============================================================================
-
-  bump-version:
-    desc: "Bump package version (type: major, minor, patch, release_type or release_num)"
+  # =============================================================================
+  # VERSION
+  # =============================================================================
+  version:bump:
+    desc: "Bump version (usage: task version:bump -- major|minor|patch|release_num|release_type)"
+    aliases: [bump]
     cmds:
-      - SKIP=pytest bump-my-version bump {{.CLI_ARGS}}
+      - uv tool run bump-my-version bump {{.CLI_ARGS}}
+      - echo "✅ New version → $(uv tool run bump-my-version show current_version)"
+    silent: true
 
-  version:update-submodule:
-    desc: Update proto submodule to latest dev
-    internal: true
+  version:current:
+    desc: "Show current package version"
+    aliases: [version]
     cmds:
-      - git submodule update --remote --merge {{.PROTO_FOLDER}}
+      - uv tool run bump-my-version show current_version
+    silent: true
 
-  # ==============================================================================
-  # CI/CD
-  # ==============================================================================
-
-  ci:
-    desc: Run full CI pipeline
+  version:breaking:
+    desc: "Check for breaking changes in proto files against main branch"
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: lint
-      - task: test
-      - task: build
+      - buf breaking proto --against '.git#branch=main,subdir=proto'
 
-  ci:quick:
-    desc: Quick CI checks (lint only)
+  version:breaking:verbose:
+    desc: "Check for breaking changes (verbose JSON output)"
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: lint:format
-      - task: lint:ruff
+      - buf breaking proto --against '.git#branch=main,subdir=proto' --error-format=json | jq
 
-  check:
-    desc: Quick health check
-    cmds:
-      - task: validate
-      - task: ci:quick
-      - echo "All checks passed!"
-
-  validate:
-    desc: Validate development environment
-    cmds:
-      - command -v uv >/dev/null 2>&1 || { echo "uv not found"; exit 1; }
-      - command -v task >/dev/null 2>&1 || { echo "task not found"; exit 1; }
-      - command -v rsync >/dev/null 2>&1 || { echo "rsync not found"; exit 1; }
-      - echo "All required tools are installed"
-
-  # ==============================================================================
-  # Cleanup
-  # ==============================================================================
-
+  # =============================================================================
+  # CLEAN
+  # =============================================================================
   clean:
-    desc: Remove build artifacts and cache directories
+    desc: "Clean all artifacts (src/ + dist/ + .task/)"
     cmds:
-      - rm -rf dist src/{{.PACKAGE_NAME}}.egg-info
-      - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-      - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+      - task: clean:gen
+      - task: clean:build
 
-  clean:full:
-    desc: Deep clean (generated code + venv + all artifacts)
-    aliases: [clean-all, reset]
+  clean:build:
+    desc: "Remove build artifacts (dist/)"
+    cmds:
+      - rm -rf dist
+      - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+      - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+  clean:gen:
+    desc: "Remove all generated code (src/ + submodule gen/)"
+    cmds:
+      - rm -rf {{.SRC_DIR}}
+      - rm -rf {{.PROTO_GEN_DIR}}
+      - rm -rf {{.PROTO_FOLDER}}/gen
+      - rm -rf .task
+
+  clean:all:
+    desc: "Deep clean (all artifacts + venv)"
     cmds:
       - task: clean
-      - task: proto:clean
       - rm -rf .venv
+      - rm -rf {{.PROTO_FOLDER}}/node_modules
+
+  # =============================================================================
+  # CI
+  # =============================================================================
+  ci:
+    desc: "Run full CI pipeline (lint + test + build)"
+    cmds:
+      - task: lint:format:check
+      - task: lint:py
+      - task: lint:proto
+      - task: test
+      - task: build
+      - echo "✅ All CI checks passed!"
+
+  ci:quick:
+    desc: "Quick CI checks (format + lint only)"
+    cmds:
+      - task: lint:format:check
+      - task: lint:py
+
+  # =============================================================================
+  # VALIDATE
+  # =============================================================================
+  validate:
+    desc: "Check required tools are installed"
+    cmds:
+      - |
+        echo "Checking required tools..."
+        MISSING=0
+        command -v uv &> /dev/null && echo "✅ uv $(uv --version)" || { echo "❌ uv - https://docs.astral.sh/uv/"; MISSING=1; }
+        command -v task &> /dev/null && echo "✅ task $(task --version | head -1)" || { echo "❌ task - https://taskfile.dev/"; MISSING=1; }
+        command -v rsync &> /dev/null && echo "✅ rsync" || { echo "❌ rsync - install via package manager"; MISSING=1; }
+        command -v git &> /dev/null && echo "✅ git $(git --version)" || { echo "❌ git - https://git-scm.com/"; MISSING=1; }
+        [ $MISSING -eq 0 ] && echo "✅ All tools installed!" || { echo "❌ Missing required tools."; exit 1; }

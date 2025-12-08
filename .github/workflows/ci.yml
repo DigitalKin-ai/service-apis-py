@@ -37,13 +37,10 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
         with:
-          node-version: "20"
-
-      - name: Install npm dependencies for buf
-        run: task install:amp
+          setup_only: true
 
       - name: Cache dependencies
         id: cache-uv
@@ -53,6 +50,9 @@ jobs:
           key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-uv-
+
+      - name: Setup submodule
+        run: task install:submodule
 
       - name: Generate Python code from protobuf
         run: task gen
