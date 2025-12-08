@@ -37,16 +37,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ github.token }}
+          node-version: "20"
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "25.1"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install npm dependencies for buf
+        run: task install:amp
 
       - name: Cache dependencies
         id: cache-uv
