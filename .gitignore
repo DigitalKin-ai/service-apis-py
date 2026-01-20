@@ -182,5 +182,7 @@ src/digitalkin_proto/google/
 
 .task/*
 .vscode/
+.idea/
+.DS_Store
 
 requirements.txt
