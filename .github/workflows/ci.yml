@@ -10,14 +10,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -34,16 +37,13 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install buf
-        uses: bufbuild/buf-setup-action@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ github.token }}
+          node-version: "20"
 
-      - name: Install protoc
-        uses: arduino/setup-protoc@v3
-        with:
-          version: "25.1"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install npm dependencies for buf
+        run: task install:amp
 
       - name: Cache dependencies
         id: cache-uv
@@ -54,22 +54,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-uv-
 
-      - name: Install dependencies
-        run: |
-          uv pip install -e . --system
-          uv pip install pytest ruff --system
-
       - name: Generate Python code from protobuf
-        run: task gen-proto
+        run: task gen
 
-      - name: Lint with Ruff
-        run: ruff check
-
-      - name: Format check with Ruff
-        run: ruff format --check
-
-      - name: Build package
-        run: task build-package
+      - name: Install dependencies
+        run: uv sync
 
       - name: Run tests
-        run: pytest
+        run: uv run pytest

@@ -1,20 +1,46 @@
-"""Basic import tests for the digitalkin_proto package."""
+"""Test that all generated proto modules can be imported."""
 
 
-def test_import_package():
-    """Test that the package can be imported."""
-    import digitalkin_proto
+def test_all_proto_imports():
+    """Test that all generated proto modules can be imported successfully."""
+    # Cost service imports
+    from agentic_mesh_protocol.cost.v1 import (
+        cost_service_pb2,
+    )
 
-    assert digitalkin_proto is not None
-    print(f"Success! Version: {digitalkin_proto.__version__}")
+    # Filesystem service imports
+    from agentic_mesh_protocol.filesystem.v1 import (
+        filesystem_service_pb2,
+    )
+    from agentic_mesh_protocol.module.v1 import (
+        module_service_pb2,
+    )
 
+    # Module registry service imports
+    from agentic_mesh_protocol.module_registry.v1 import (
+        module_registry_service_pb2,
+    )
 
-def test_submodule_imports():
-    """Test importing submodules (if they exist after generation)."""
-    from digitalkin_proto.digitalkin.module.v1 import module_service_pb2_grpc
+    # Setup service imports
+    from agentic_mesh_protocol.setup.v1 import (
+        setup_service_pb2,
+    )
 
-    assert module_service_pb2_grpc is not None
+    # Storage service imports
+    from agentic_mesh_protocol.storage.v1 import (
+        storage_service_pb2,
+    )
 
-    from digitalkin_proto.digitalkin.module_registry.v1 import module_registry_service_pb2_grpc
+    # User profile service imports
+    from agentic_mesh_protocol.user_profile.v1 import (
+        user_profile_service_pb2,
+    )
 
-    assert module_registry_service_pb2_grpc is not None
+    # Verify that the modules have expected attributes (basic sanity check)
+    assert hasattr(module_service_pb2, "DESCRIPTOR")
+    assert hasattr(module_registry_service_pb2, "DESCRIPTOR")
+    assert hasattr(storage_service_pb2, "DESCRIPTOR")
+    assert hasattr(filesystem_service_pb2, "DESCRIPTOR")
+    assert hasattr(cost_service_pb2, "DESCRIPTOR")
+    assert hasattr(setup_service_pb2, "DESCRIPTOR")
+    assert hasattr(user_profile_service_pb2, "DESCRIPTOR")
