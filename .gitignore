@@ -180,9 +180,9 @@ src/digitalkin_proto/buf/
 src/digitalkin_proto/agentic_mesh_protocol/
 src/digitalkin_proto/google/
 
-CLAUDE.md
-
-.task/
+.task/*
 .vscode/
+.idea/
+.DS_Store
 
 requirements.txt

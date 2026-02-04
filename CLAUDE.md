@@ -28,12 +28,14 @@ The repository follows a multi-stage generation pipeline:
 After running `task gen`, the package contains:
 
 **Primary package** (`src/digitalkin_proto/`):
+
 - `agentic_mesh_protocol/*/v1/` - Versioned service implementations (module, module_registry, storage, filesystem, cost, setup, user_profile)
 - `buf/validate/` - Protocol buffer validation definitions (generated from buf.build/bufbuild/protovalidate)
 - `__init__.py` files created automatically for all directories
 - `.pyi` stub files for type checking
 
 **Top-level namespace packages** (for import compatibility):
+
 - `src/buf/` - Copy of `digitalkin_proto.buf` to support `from buf.validate import` statements in generated code
 - `src/agentic_mesh_protocol/` - Copy of `digitalkin_proto.agentic_mesh_protocol` to support cross-module imports in generated code
 
@@ -42,6 +44,7 @@ These namespace packages are necessary because buf-generated Python code uses ab
 ## Common Development Commands
 
 ### Quick Start
+
 ```bash
 # Clone with submodules
 git clone --recurse-submodules <repo-url>
@@ -55,6 +58,7 @@ task install   # Install dependencies (alias: deps, sync)
 ```
 
 ### Development Workflow
+
 ```bash
 # Start fresh development environment
 task dev       # Runs: setup + generate proto + ready message
@@ -67,6 +71,7 @@ task check     # Validate + quick lint + confirmation
 ```
 
 ### Code Generation
+
 ```bash
 # Generate Python code from proto files
 task gen       # Aliases: generate, gen-proto, proto
@@ -79,6 +84,7 @@ task proto:clean
 ```
 
 ### Proto Quality (Delegated to Submodule)
+
 ```bash
 # Lint proto files
 task proto:lint
@@ -94,6 +100,7 @@ task proto:breaking
 ```
 
 ### Code Quality
+
 ```bash
 # Format code
 task fmt       # Alias: format
@@ -109,6 +116,7 @@ task pre-commit
 ```
 
 ### Testing
+
 ```bash
 # Run tests
 task test      # Alias: t
@@ -119,6 +127,7 @@ task test:watch
 ```
 
 ### Building and Publishing
+
 ```bash
 # Build package
 task build
@@ -131,6 +140,7 @@ task publish:prod  # Aliases: publish, release
 ```
 
 ### Version Management
+
 ```bash
 # Bump version
 task bump-version -- patch   # Default: patch (0.1.16 → 0.1.17)
@@ -141,6 +151,7 @@ task bump-version -- pre_n   # Pre-release number
 ```
 
 ### CI/CD
+
 ```bash
 # Run full CI pipeline locally
 task ci        # Lint + test + build
@@ -150,6 +161,7 @@ task ci:quick  # Format check + lint only
 ```
 
 ### Cleanup
+
 ```bash
 # Remove build artifacts and cache
 task clean
@@ -159,6 +171,7 @@ task clean:full  # Aliases: clean-all, reset
 ```
 
 ### Utilities
+
 ```bash
 # List all available tasks
 task --list
@@ -177,6 +190,7 @@ task           # Default task shows list
 ### Code Generation Details
 
 The `task gen` command performs a 6-step pipeline:
+
 1. **proto:init** - Ensures submodule is initialized
 2. **proto:generate** - Delegates to `amp:generate` via Taskfile includes (which executes `npx buf generate` in the submodule with both local proto files AND buf.build/bufbuild/protovalidate module)
 3. **proto:copy** - Copies files from `agentic-mesh-protocol/gen/python/` to `src/digitalkin_proto/`
@@ -202,6 +216,7 @@ This allows calling submodule tasks directly (e.g., `task amp:generate:python`, 
 ### Testing Generated Code
 
 Tests should import from the public package structure:
+
 ```python
 from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_pb2, module_service_pb2_grpc
 ```
@@ -220,6 +235,7 @@ from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_pb2, module_
 The modernized `taskfile.yml` includes:
 
 ### Task Organization
+
 - **Includes**: Delegates proto-related tasks to the submodule using `amp:*` namespace
 - **Namespaced tasks**: Related tasks grouped with `:` separator (e.g., `proto:init`, `lint:fix`, `version:bump`)
 - **Aliases**: Common shortcuts (e.g., `task t` for `task test`, `task fmt` for `task format`)
@@ -227,18 +243,21 @@ The modernized `taskfile.yml` includes:
 - **Default task**: Running just `task` shows the task list
 
 ### Smart Execution
+
 - **Dependency tracking**: Uses `sources`/`generates` to skip unchanged work
 - **Preconditions**: Tasks validate requirements before running
 - **Status checks**: Tasks skip if already completed (e.g., submodule already initialized)
 - **Deps**: Tasks can depend on other tasks running first
 
 ### Developer Experience
+
 - **Summaries**: Extended help with `--summary` flag
 - **CLI args**: Pass arguments through with `{{.CLI_ARGS}}`
 - **Variables**: Centralized configuration in `vars` section
 - **Dotenv support**: Automatically loads `.env` file if present
 
 ### Key Task Categories
+
 - **Setup**: `init`, `install`, `setup`, `dev`, `install:hooks`
 - **Proto**: `gen`, `proto:*` namespace (init, generate, copy, ensure-init, clean, lint, format, format:check, breaking)
 - **Quality**: `fmt`, `lint`, `lint:*`, `pre-commit`
@@ -252,12 +271,14 @@ The modernized `taskfile.yml` includes:
 ## Code Quality Standards
 
 ### Ruff Configuration
+
 - Line length: 100 characters
 - Enabled rules: pycodestyle, pyflakes, isort, pydocstyle (Google convention), pyupgrade, naming, bugbear, comprehensions, simplify
 - Format: double quotes, space indentation
 - Known first-party: `digitalkin_proto`
 
 ### Pre-commit Hooks
+
 - Trailing whitespace removal
 - End-of-file fixer
 - YAML/TOML validation
@@ -267,6 +288,7 @@ The modernized `taskfile.yml` includes:
 ## Dependencies
 
 ### Required Tools
+
 - Python 3.10+
 - uv (package manager and project manager)
 - Task (task runner)
@@ -277,6 +299,7 @@ Note: `buf` and `protoc` are handled by the submodule via npx, no local installa
 ### Python Dependencies
 
 **Runtime (included in package):**
+
 - grpcio>=1.76.0, grpcio-tools>=1.76.0
 - protobuf>=6.33.0
 - googleapis-common-protos>=1.71.0
@@ -284,6 +307,7 @@ Note: `buf` and `protoc` are handled by the submodule via npx, no local installa
 - bump-my-version>=1.2.4
 
 **Development groups (via [dependency-groups], PEP 735):**
+
 - `dev`: All development dependencies (pytest, ruff, mypy, pre-commit, build tools)
 - `test`: pytest
 - `lint`: ruff, pre-commit
