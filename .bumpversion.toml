@@ -3,7 +3,7 @@
 # https://peps.python.org/pep-0440/
 
 [tool.bumpversion]
-    current_version = "0.2.2"
+    current_version = "0.2.3.dev0"
     # Parse version following PEP 440
     parse = """(?x)
     (?P<major>0|[1-9]\\d*)\\.
@@ -26,7 +26,7 @@
     [tool.bumpversion.parts.release_type]
         # Release progression: dev -> alpha -> beta -> rc -> final -> post
         optional_value = "final"                                    # When "final", the release_type is omitted
-        values         = [ "a", "b", "dev", "final", "post", "rc" ]
+        values         = [ "dev", "a", "b", "rc", "final", "post" ]
 
     # Files to update when bumping version
     [[tool.bumpversion.files]]
