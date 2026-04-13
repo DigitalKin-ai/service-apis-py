@@ -41,7 +41,7 @@ tasks:
 
   install:
     desc: Install Python dependencies
-    aliases: [deps, sync]
+    aliases: [deps, sync, install-deps]
     cmds:
       - uv sync
     sources:
@@ -70,6 +70,7 @@ tasks:
 
   install:hooks:
     desc: Install pre-commit hooks
+    aliases: [setup-pre-commit]
     cmds:
       - "{{.PYTHON}} pre-commit install --install-hooks"
     status:
@@ -80,6 +81,7 @@ tasks:
 
   dev:
     desc: Quick development setup
+    aliases: [setup-dev]
     cmds:
       - task: setup
       - task: gen
@@ -217,6 +219,7 @@ tasks:
 
   lint:
     desc: Check code quality (format + lint + type check)
+    aliases: [linter]
     cmds:
       - task: lint:format
       - task: lint:ruff
@@ -244,7 +247,7 @@ tasks:
 
   test:
     desc: Run test suite
-    aliases: [t]
+    aliases: [t, run-tests]
     cmds:
       - "{{.PYTHON}} pytest {{.CLI_ARGS}}"
     sources:
@@ -279,7 +282,7 @@ tasks:
 
   publish:test:
     desc: Publish package to TestPyPI
-    aliases: [publish-test]
+    aliases: [publish-test, publish-package-test]
     deps: [build]
     cmds:
       - uv publish --repository-url https://test.pypi.org/legacy/ {{.CLI_ARGS}}
@@ -289,7 +292,7 @@ tasks:
 
   publish:prod:
     desc: Publish package to PyPI
-    aliases: [publish, release]
+    aliases: [publish, release, publish-package]
     deps: [build]
     cmds:
       - uv publish {{.CLI_ARGS}}
