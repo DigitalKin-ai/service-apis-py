@@ -363,4 +363,4 @@ tasks:
       - task: clean
       - task: proto:clean
       - rm -rf .venv
-      - rm -rf .tasl
+      - rm -rf .task
