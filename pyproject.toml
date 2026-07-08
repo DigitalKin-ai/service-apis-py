@@ -38,7 +38,7 @@
     name = "agentic-mesh-protocol"
     readme = "README.md"
     requires-python = ">=3.10"
-    version = "1.0.0a1"
+    version = "1.0.0a2"
 
     [project.urls]
         "Bug Tracker"   = "https://github.com/DigitalKin-ai/service-apis-py/issues"
