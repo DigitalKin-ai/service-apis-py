@@ -5,4 +5,4 @@ from importlib.metadata import PackageNotFoundError, version
 try:
     __version__ = version("agentic-mesh-protocol")
 except PackageNotFoundError:
-    __version__ = "1.0.0b0"
+    __version__ = "1.0.1.dev2"
