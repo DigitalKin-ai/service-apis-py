@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is `digitalkin_proto`, a Python package that provides generated gRPC client and server interfaces from Digitalkin's Protocol Buffer definitions. The package is published to PyPI and enables seamless integration with Digitalkin services.
+This is `agentic-mesh-protocol` (import name `agentic_mesh_protocol`), a Python package that provides generated gRPC client and server interfaces from Digitalkin's Protocol Buffer definitions. The package is published to PyPI and enables seamless integration with Digitalkin services.
 
 ## Architecture
 
@@ -13,33 +13,42 @@ This is `digitalkin_proto`, a Python package that provides generated gRPC client
 The repository follows a multi-stage generation pipeline:
 
 1. **Proto Source**: Protocol Buffer definitions are maintained in the `agentic-mesh-protocol` git submodule (separate repository)
-2. **Code Generation**: Delegates to `amp:generate:python` (via Taskfile includes), which uses `buf generate` with remote plugins (protocolbuffers/python v33.0 + grpc/python v1.76.0)
-3. **File Transfer**: Generated files from `agentic-mesh-protocol/gen/python/` are copied to `src/digitalkin_proto/`
-4. **Package Building**: Generated code is in `src/digitalkin_proto/` with `__init__.py` files auto-created
+2. **Code Generation**: Delegates to `amp:generate` (via Taskfile includes), which uses `buf generate` with remote plugins (protocolbuffers/python v33.0 + grpc/python v1.76.0)
+3. **File Transfer**: Generated files from `agentic-mesh-protocol/gen/python/` are copied to `src/agentic_mesh_protocol/` and `src/buf/`
+4. **Package Building**: Generated code is in `src/agentic_mesh_protocol/` with `__init__.py` files auto-created
 
 ### Key Components
 
 - **`agentic-mesh-protocol/` submodule**: Contains upstream `.proto` files and buf configuration for code generation
-- **`src/digitalkin_proto/`**: Package root containing all generated code and type stubs
+- **`src/agentic_mesh_protocol/`**: Package root containing all generated code and type stubs
+- **`src/buf/`**: Generated protovalidate definitions, importable as `buf.validate`
 - **`taskfile.yml`**: Modern task automation with dependency tracking, caching, organized namespaces, and Taskfile includes for delegating proto tasks to the submodule
 
 ### Generated Package Structure
 
-After running `task gen`, the package contains:
+After running `task gen`, two top-level packages are shipped, matching the absolute
+imports that buf-generated code emits (e.g. `from buf.validate import validate_pb2`):
 
-**Primary package** (`src/digitalkin_proto/`):
+**`src/agentic_mesh_protocol/`** - one subpackage per service, each versioned under `v1/`:
+`cost`, `filesystem`, `gateway`, `module`, `registry`, `setup`, `storage`, `user_profile`.
 
-- `agentic_mesh_protocol/*/v1/` - Versioned service implementations (module, module_registry, storage, filesystem, cost, setup, user_profile)
-- `buf/validate/` - Protocol buffer validation definitions (generated from buf.build/bufbuild/protovalidate)
-- `__init__.py` files created automatically for all directories
-- `.pyi` stub files for type checking
+**`src/buf/validate/`** - protovalidate definitions (generated from buf.build/bufbuild/protovalidate).
 
-**Top-level namespace packages** (for import compatibility):
+Both get `__init__.py` files created automatically for every directory, plus `.pyi` stubs
+for type checking.
 
-- `src/buf/` - Copy of `digitalkin_proto.buf` to support `from buf.validate import` statements in generated code
-- `src/agentic_mesh_protocol/` - Copy of `digitalkin_proto.agentic_mesh_protocol` to support cross-module imports in generated code
+### What is and is not checked in
 
-These namespace packages are necessary because buf-generated Python code uses absolute imports (e.g., `from buf.validate import validate_pb2`) rather than relative imports. The `proto:create-namespaces` task automatically creates these during generation.
+Only the hand-maintained skeleton is tracked by git: the `__init__.py` files,
+`__version__.py` and `py.typed`. Every `*_pb2.py`, `*_pb2.pyi` and `*_pb2_grpc.py` is
+gitignored and rebuilt by `task gen`. **Never edit anything under `src/` by hand** - the
+source of truth is `agentic-mesh-protocol/proto/**/*.proto`, and the next generation
+overwrites it.
+
+`task gen` wipes `agentic-mesh-protocol/gen/python/` before running buf, because buf only
+ever writes files and never removes output for protos that were deleted upstream. Without
+the wipe, a removed service leaves an orphaned Python package behind that gets copied into
+`src/` forever.
 
 ## Common Development Commands
 
@@ -185,17 +194,17 @@ task           # Default task shows list
 1. Proto files live in the `agentic-mesh-protocol` submodule, NOT in this repository
 2. To update protos: modify them in the `agentic-mesh-protocol` repository, then update the submodule reference here
 3. After updating submodule: run `task gen-proto` to regenerate Python code
-4. The `bump-version` task automatically pulls latest from submodule's dev branch
+4. `task bump-version` only rewrites the version strings; advancing the submodule pointer is a separate step (`git submodule update --remote`)
 
 ### Code Generation Details
 
 The `task gen` command performs a 6-step pipeline:
 
 1. **proto:init** - Ensures submodule is initialized
-2. **proto:generate** - Delegates to `amp:generate` via Taskfile includes (which executes `npx buf generate` in the submodule with both local proto files AND buf.build/bufbuild/protovalidate module)
-3. **proto:copy** - Copies files from `agentic-mesh-protocol/gen/python/` to `src/digitalkin_proto/`
+2. **proto:generate** - Wipes `agentic-mesh-protocol/gen/python/`, then delegates to `amp:generate` via Taskfile includes (which executes `npx buf generate` in the submodule with both local proto files AND buf.build/bufbuild/protovalidate module)
+3. **proto:copy** - Copies files from `agentic-mesh-protocol/gen/python/` to `src/agentic_mesh_protocol/` and `src/buf/`, guarded by a precondition so an empty generation cannot `rsync --delete` the package away
 4. **proto:ensure-init** - Ensures all directories have `__init__.py` files
-5. **proto:create-namespaces** - Creates top-level `buf/` and `agentic_mesh_protocol/` namespace packages for import compatibility
+5. **proto:create-namespaces** - Ensures `src/buf/` and `src/buf/validate/` have `__init__.py` so `from buf.validate import ...` resolves
 6. **build** - Builds the Python package
 
 The pipeline uses Task's `sources`/`generates` for intelligent caching - steps are skipped if inputs haven't changed.
@@ -211,14 +220,14 @@ includes:
     dir: ./agentic-mesh-protocol
 ```
 
-This allows calling submodule tasks directly (e.g., `task amp:generate:python`, `task amp:lint`, `task amp:format`) while maintaining a clean separation of concerns.
+This allows calling submodule tasks directly (e.g., `task amp:generate`, `task amp:lint`, `task amp:format`) while maintaining a clean separation of concerns.
 
 ### Testing Generated Code
 
 Tests should import from the public package structure:
 
 ```python
-from digitalkin_proto.agentic_mesh_protocol.module.v1 import module_pb2, module_service_pb2_grpc
+from agentic_mesh_protocol.module.v1 import module_service_pb2, module_service_pb2_grpc
 ```
 
 ### CI/CD Pipeline
@@ -272,10 +281,10 @@ The modernized `taskfile.yml` includes:
 
 ### Ruff Configuration
 
-- Line length: 100 characters
-- Enabled rules: pycodestyle, pyflakes, isort, pydocstyle (Google convention), pyupgrade, naming, bugbear, comprehensions, simplify
-- Format: double quotes, space indentation
-- Known first-party: `digitalkin_proto`
+`[tool.ruff]` in `pyproject.toml` only sets `target-version = "py310"` and
+`src = ["src", "test"]`; everything else is Ruff's default (88-char lines, default rule
+set). Generated `*_pb2*` files are excluded from mypy via `mypy.ini` and the pre-commit
+hook, not from Ruff.
 
 ### Pre-commit Hooks
 
@@ -298,28 +307,26 @@ Note: `buf` and `protoc` are handled by the submodule via npx, no local installa
 
 ### Python Dependencies
 
-**Runtime (included in package):**
+**Runtime (included in package)** - pinned exactly, because the generated code is tied to the
+protobuf/grpc versions it was built with:
 
-- grpcio>=1.76.0, grpcio-tools>=1.76.0
-- protobuf>=6.33.0
-- googleapis-common-protos>=1.71.0
-- protovalidate>=1.0.0 (runtime validation library)
-- bump-my-version>=1.2.4
+- grpcio==1.82.1, grpcio-tools==1.82.1
+- protobuf==7.35.1
+- googleapis-common-protos==1.75.0
+- protovalidate==1.2.0 (runtime validation library)
+- bump-my-version>=1.4.1
 
-**Development groups (via [dependency-groups], PEP 735):**
+**Development group (via [dependency-groups], PEP 735):**
 
-- `dev`: All development dependencies (pytest, ruff, mypy, pre-commit, build tools)
-- `test`: pytest
-- `lint`: ruff, pre-commit
-- `build`: build, twine, bump2version
+- `dev`: pytest, ruff, mypy, pre-commit, build, twine, bump-my-version
 
 Install with: `uv sync` (installs runtime + dev group by default)
 
 ## Package Metadata
 
-- **Package name**: `digitalkin_proto`
-- **Current version**: 0.1.16 (tracked in `pyproject.toml` and `src/digitalkin_proto/__init__.py`)
+- **Distribution name**: `agentic-mesh-protocol` / **import name**: `agentic_mesh_protocol`
+- **Current version**: 1.0.1 (tracked in `pyproject.toml`, `.bumpversion.toml` and `src/agentic_mesh_protocol/__version__.py`)
 - **License**: Proprietary
-- **Python support**: 3.10, 3.11, 3.12, 3.13
+- **Python support**: classifiers advertise 3.10-3.14; the CI matrix tests 3.10-3.13
 - **Build system**: setuptools with modern pyproject.toml (PEP 517/518)
 - **Dependency management**: uv with dependency-groups (PEP 735)

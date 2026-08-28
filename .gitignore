@@ -173,12 +173,11 @@ cython_debug/
 .pypirc
 
 # Project specific
+# Generated gRPC/protobuf code. Source of truth is agentic-mesh-protocol/proto/**/*.proto;
+# everything below is rebuilt by `task gen` into src/agentic_mesh_protocol/ and src/buf/.
 *_pb2.py
 *_pb2.pyi
 *_pb2_grpc.py
-src/digitalkin_proto/buf/
-src/digitalkin_proto/agentic_mesh_protocol/
-src/digitalkin_proto/google/
 
 .task/*
 .vscode/
