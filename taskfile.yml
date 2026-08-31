@@ -102,7 +102,11 @@ tasks:
     internal: true
     deps: ["proto:init", "install:amp"]
     cmds:
-      - task: amp:generate
+      # buf only ever writes files, it never removes output for protos deleted
+      # upstream. Wipe first so removed services cannot leave orphaned packages
+      # behind (--force because Task would otherwise skip a "cached" generate).
+      - rm -rf {{.PROTO_GEN_DIR}}
+      - task --force amp:generate
     sources:
       - "{{.PROTO_FOLDER}}/proto/**/*.proto"
       - "{{.PROTO_FOLDER}}/buf.gen.yaml"
@@ -114,6 +118,13 @@ tasks:
     desc: Copy generated proto files to package
     internal: true
     deps: ["proto:generate"]
+    preconditions:
+      # rsync --delete mirrors source onto destination: a missing or empty gen
+      # directory would silently wipe src/ instead of failing.
+      - sh: 'test -n "$(ls -A {{.PROTO_GEN_DIR}}/agentic_mesh_protocol 2>/dev/null)"'
+        msg: '{{.PROTO_GEN_DIR}}/agentic_mesh_protocol is missing or empty - generation failed'
+      - sh: 'test -n "$(ls -A {{.PROTO_GEN_DIR}}/buf 2>/dev/null)"'
+        msg: '{{.PROTO_GEN_DIR}}/buf is missing or empty - generation failed'
     cmds:
       - mkdir -p {{.PACKAGE_DIR}}
       - mkdir -p {{.BUF_PACKAGE_DIR}}
@@ -168,11 +179,11 @@ tasks:
   proto:clean:
     desc: Clean generated proto files (preserves __version__.py, __init__.py, py.typed)
     cmds:
-      - rm -rf {{.PACKAGE_DIR}}/module {{.PACKAGE_DIR}}/cost {{.PACKAGE_DIR}}/filesystem
-      - rm -rf {{.PACKAGE_DIR}}/module_registry {{.PACKAGE_DIR}}/setup {{.PACKAGE_DIR}}/storage
-      - rm -rf {{.PACKAGE_DIR}}/user_profile
-      - rm -rf {{.BUF_PACKAGE_DIR}}/validate
-      - rm -rf {{.PROTO_FOLDER}}/gen
+      # Every subdirectory is buf output; only the top-level __init__.py,
+      # __version__.py and py.typed are hand-maintained.
+      - find {{.PACKAGE_DIR}} -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+      - find {{.BUF_PACKAGE_DIR}} -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
+      - rm -rf {{.PROTO_GEN_DIR}}
 
   proto:lint:
     desc: Lint proto files with buf
@@ -363,3 +374,4 @@ tasks:
       - task: clean
       - task: proto:clean
       - rm -rf .venv
+      - rm -rf .task
