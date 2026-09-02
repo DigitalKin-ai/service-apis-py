@@ -3,7 +3,7 @@
 # https://peps.python.org/pep-0440/
 
 [tool.bumpversion]
-    current_version = "1.0.2.dev0"
+    current_version = "1.0.2.dev1"
 
     allow_dirty = false # Require clean working directory
     commit      = false # Don't auto-commit (let user control git)
