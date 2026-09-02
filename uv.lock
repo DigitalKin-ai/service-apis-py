@@ -11,7 +11,7 @@ resolution-markers = [
 
 [[package]]
 name = "agentic-mesh-protocol"
-version = "1.0.1"
+version = "1.0.2.dev1"
 source = { editable = "." }
 dependencies = [
     { name = "bump-my-version" },
