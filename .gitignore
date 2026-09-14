@@ -173,8 +173,9 @@ cython_debug/
 .pypirc
 
 # Project specific
-# Generated gRPC/protobuf code. Source of truth is agentic-mesh-protocol/proto/**/*.proto;
-# everything below is rebuilt by `task gen` into src/agentic_mesh_protocol/ and src/buf/.
+# The whole Python package is generated into gen/ by `task gen`.
+# Source of truth is agentic-mesh-protocol/proto/**/*.proto.
+/gen/
 *_pb2.py
 *_pb2.pyi
 *_pb2_grpc.py
@@ -187,3 +188,9 @@ cython_debug/
 requirements.txt
 .envrc
 .serena
+
+.serena
+
+# direnv (local proto checkout override)
+.envrc
+.direnv/

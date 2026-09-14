@@ -1,20 +1,34 @@
 version: "3"
 
 # Modern, optimized Taskfile with dependency tracking and best practices
+#
+# Nothing importable is checked in: `task gen` builds the whole package into gen/
+# (gitignored) from the protos in the agentic-mesh-protocol submodule.
 
+# Proto sources: defaults to the git submodule, override with the AMP_DIR env var
+# (e.g. AMP_DIR=/path/to/agentic-mesh-protocol task gen) to build against a local checkout.
+# The submodule's own tasks stay reachable as `task amp:<name>`.
 includes:
   amp:
-    taskfile: ./agentic-mesh-protocol/Taskfile.yml
-    dir: ./agentic-mesh-protocol
+    taskfile: '{{.AMP_DIR | default "agentic-mesh-protocol"}}/Taskfile.yml'
+    dir: '{{.AMP_DIR | default "agentic-mesh-protocol"}}'
     optional: true
 
 vars:
   PACKAGE_NAME: agentic_mesh_protocol
-  PACKAGE_DIR: src/{{.PACKAGE_NAME}}
-  BUF_PACKAGE_DIR: src/buf
-  PROTO_FOLDER: agentic-mesh-protocol
+  # Package root used by pyproject.toml. Not named GEN_DIR: vars of the included
+  # submodule Taskfile are global, and its GEN_DIR (gen/python) would win.
+  GEN_ROOT: gen
+  PACKAGE_DIR: "{{.GEN_ROOT}}/{{.PACKAGE_NAME}}"
+  DIST_DIR: dist
+  PROTO_FOLDER: '{{.AMP_DIR | default "agentic-mesh-protocol"}}'
+  # Where buf writes Python output, per the submodule's buf.gen.yaml
   PROTO_GEN_DIR: "{{.PROTO_FOLDER}}/gen/python"
   PYTHON: uv run
+  # Prefer a buf binary on PATH (CI installs one); fall back to the submodule's npm copy.
+  # --no-install: without node_modules, npx would fetch the unrelated npm package "buf".
+  BUF:
+    sh: command -v buf >/dev/null 2>&1 && echo buf || echo "npx --no-install buf"
 
 dotenv: [".env"]
 
@@ -37,7 +51,7 @@ tasks:
     cmds:
       - git submodule update --init --recursive
     status:
-      - test -f {{.PROTO_FOLDER}}/.git
+      - test -e {{.PROTO_FOLDER}}/.git
 
   install:
     desc: Install Python dependencies
@@ -51,20 +65,20 @@ tasks:
       - .venv/**/*
 
   install:amp:
-    desc: Install agentic-mesh-protocol npm dependencies
+    desc: Install agentic-mesh-protocol npm dependencies (only needed when buf is not on PATH)
     aliases: [amp-install]
     deps: [init]
     cmds:
       - task: amp:install
     status:
-      - test -d {{.PROTO_FOLDER}}/node_modules
+      - command -v buf >/dev/null 2>&1 || test -d {{.PROTO_FOLDER}}/node_modules
 
   setup:
     desc: Complete development environment setup
     aliases: [bootstrap]
     cmds:
       - task: init
-      - task: amp:install
+      - task: install:amp
       - task: install
       - task: install:hooks
 
@@ -89,121 +103,131 @@ tasks:
   # Proto Generation
   # ==============================================================================
 
+  gen:
+    desc: Generate the Python package into gen/ from the proto files
+    aliases: [generate, gen-proto, proto]
+    deps: ["proto:init"]
+    cmds:
+      - task: proto:generate
+      - task: proto:copy
+      - task: proto:scaffold
+    sources:
+      - "{{.PROTO_FOLDER}}/proto/**/*.proto"
+      - "{{.PROTO_FOLDER}}/proto/buf.yaml"
+      - "{{.PROTO_FOLDER}}/proto/buf.lock"
+      - "{{.PROTO_FOLDER}}/buf.gen.yaml"
+      # The package version is baked into gen/agentic_mesh_protocol/__version__.py
+      - pyproject.toml
+    generates:
+      - "{{.PACKAGE_DIR}}/__init__.py"
+      - "{{.GEN_ROOT}}/**/*.py"
+      - "{{.GEN_ROOT}}/**/*.pyi"
+    summary: |
+      Generates the importable Python package from Protocol Buffer definitions.
+
+      Everything lands in gen/ (gitignored), which pyproject.toml uses as package root.
+
+      Steps:
+      1. Initialize submodule
+      2. Run buf generate in agentic-mesh-protocol (buf.gen.yaml)
+         - Generates code for local proto files AND buf.build/bufbuild/protovalidate
+      3. Replace gen/ with the buf output (agentic_mesh_protocol/ and buf/)
+      4. Add what buf does not emit: __init__.py everywhere, __version__.py, py.typed
+
+      Skipped when protos, buf config and pyproject.toml are unchanged;
+      use `task gen --force` to regenerate anyway.
+
   proto:init:
     desc: Ensure proto submodule is initialized
     internal: true
     cmds:
       - task: init
     status:
-      - test -f {{.PROTO_FOLDER}}/.git
+      - test -e {{.PROTO_FOLDER}}/.git
 
   proto:generate:
     desc: Generate Python code from proto files using buf
     internal: true
-    deps: ["proto:init", "install:amp"]
+    preconditions:
+      - sh: command -v buf >/dev/null 2>&1 || test -x {{.PROTO_FOLDER}}/node_modules/.bin/buf
+        msg: "buf not found: install it (brew install bufbuild/buf/buf) or run 'task install:amp'"
     cmds:
       # buf only ever writes files, it never removes output for protos deleted
-      # upstream. Wipe first so removed services cannot leave orphaned packages
-      # behind (--force because Task would otherwise skip a "cached" generate).
-      - rm -rf {{.PROTO_GEN_DIR}}
-      - task --force amp:generate
-    sources:
-      - "{{.PROTO_FOLDER}}/proto/**/*.proto"
-      - "{{.PROTO_FOLDER}}/buf.gen.yaml"
-    generates:
-      - "{{.PROTO_GEN_DIR}}/**/*.py"
-      - "{{.PROTO_GEN_DIR}}/**/*.pyi"
+      # upstream. Wipe first so removed services cannot leave orphaned packages behind.
+      - rm -rf "{{.PROTO_GEN_DIR}}"
+      - cd "{{.PROTO_FOLDER}}" && {{.BUF}} generate --template buf.gen.yaml
 
   proto:copy:
-    desc: Copy generated proto files to package
+    desc: Replace gen/ with the freshly generated buf output
     internal: true
-    deps: ["proto:generate"]
     preconditions:
-      # rsync --delete mirrors source onto destination: a missing or empty gen
-      # directory would silently wipe src/ instead of failing.
-      - sh: 'test -n "$(ls -A {{.PROTO_GEN_DIR}}/agentic_mesh_protocol 2>/dev/null)"'
-        msg: '{{.PROTO_GEN_DIR}}/agentic_mesh_protocol is missing or empty - generation failed'
+      # gen/ is wiped below: fail instead of shipping an empty package.
+      - sh: 'test -n "$(ls -A {{.PROTO_GEN_DIR}}/{{.PACKAGE_NAME}} 2>/dev/null)"'
+        msg: "{{.PROTO_GEN_DIR}}/{{.PACKAGE_NAME}} is missing or empty - generation failed"
       - sh: 'test -n "$(ls -A {{.PROTO_GEN_DIR}}/buf 2>/dev/null)"'
-        msg: '{{.PROTO_GEN_DIR}}/buf is missing or empty - generation failed'
+        msg: "{{.PROTO_GEN_DIR}}/buf is missing or empty - generation failed"
     cmds:
-      - mkdir -p {{.PACKAGE_DIR}}
-      - mkdir -p {{.BUF_PACKAGE_DIR}}
-      # Copy agentic_mesh_protocol (content only, preserving __version__.py, __init__.py, py.typed)
-      - rsync -av --delete --exclude='__pycache__' --exclude='__version__.py' --exclude='__init__.py' --exclude='py.typed' {{.PROTO_GEN_DIR}}/agentic_mesh_protocol/ {{.PACKAGE_DIR}}/
-      # Copy buf
-      - rsync -av --delete --exclude='__pycache__' --exclude='__init__.py' {{.PROTO_GEN_DIR}}/buf/ {{.BUF_PACKAGE_DIR}}/
-    sources:
-      - "{{.PROTO_GEN_DIR}}/**/*.py"
-      - "{{.PROTO_GEN_DIR}}/**/*.pyi"
-    generates:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - "{{.BUF_PACKAGE_DIR}}/**/*.py"
+      - rm -rf "{{.GEN_ROOT}}"
+      - mkdir -p "{{.GEN_ROOT}}"
+      - cp -R "{{.PROTO_GEN_DIR}}/." "{{.GEN_ROOT}}/"
 
-  gen:
-    desc: Complete proto generation pipeline
-    aliases: [generate, gen-proto, proto]
-    cmds:
-      - task: proto:init
-      - task: proto:generate
-      - task: proto:copy
-      - task: proto:ensure-init
-      - task: proto:create-namespaces
-      - task: build
-
-    summary: |
-      Generates Python code from Protocol Buffer definitions.
-
-      Steps:
-      1. Initialize submodule
-      2. Run buf generate in agentic-mesh-protocol (via amp:generate)
-         - Generates code for local proto files AND buf.build/bufbuild/protovalidate
-      3. Copy generated files to src/agentic_mesh_protocol/ and src/buf/
-      4. Ensure __init__.py files exist in all directories
-      5. Ensure buf package has __init__.py files
-      6. Build package
-
-  proto:ensure-init:
-    desc: Ensure all directories have __init__.py files
+  proto:scaffold:
+    desc: Add the package files buf does not emit (__init__.py, __version__.py, py.typed)
     internal: true
+    vars:
+      VERSION:
+        sh: sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' pyproject.toml | head -n 1
     cmds:
-      - find "{{.PACKAGE_DIR}}" -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
-      - find "{{.BUF_PACKAGE_DIR}}" -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
+      - |
+        cat > "{{.PACKAGE_DIR}}/__init__.py" <<'EOF'
+        """Agentic Mesh Protocol - Python gRPC interfaces."""
 
-  proto:create-namespaces:
-    desc: Ensure buf package has __init__.py files for import compatibility
-    internal: true
-    cmds:
-      - touch {{.BUF_PACKAGE_DIR}}/__init__.py 2>/dev/null || true
-      - touch {{.BUF_PACKAGE_DIR}}/validate/__init__.py 2>/dev/null || true
+        from agentic_mesh_protocol.__version__ import __version__
+
+        __all__ = ["__version__"]
+        EOF
+      - |
+        cat > "{{.PACKAGE_DIR}}/__version__.py" <<'EOF'
+        """Version information for agentic_mesh_protocol package."""
+
+        from importlib.metadata import PackageNotFoundError, version
+
+        try:
+            __version__ = version("agentic-mesh-protocol")
+        except PackageNotFoundError:
+            __version__ = "{{.VERSION}}"
+        EOF
+      - touch "{{.PACKAGE_DIR}}/py.typed"
+      - find "{{.GEN_ROOT}}" -mindepth 1 -type d ! -path "*/__pycache__*" -exec sh -c 'test -f "$1/__init__.py" || touch "$1/__init__.py"' _ {} \;
 
   proto:clean:
-    desc: Clean generated proto files (preserves __version__.py, __init__.py, py.typed)
+    desc: Remove generated code (gen/ and the submodule's gen/python/)
     cmds:
-      # Every subdirectory is buf output; only the top-level __init__.py,
-      # __version__.py and py.typed are hand-maintained.
-      - find {{.PACKAGE_DIR}} -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
-      - find {{.BUF_PACKAGE_DIR}} -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} + 2>/dev/null || true
-      - rm -rf {{.PROTO_GEN_DIR}}
+      - rm -rf "{{.GEN_ROOT}}" "{{.PROTO_GEN_DIR}}"
 
   proto:lint:
     desc: Lint proto files with buf
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: amp:lint
+      - "{{.BUF}} lint proto"
 
   proto:format:
     desc: Format proto files with buf
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: amp:format
+      - "{{.BUF}} format -w proto"
 
   proto:format:check:
     desc: Check proto file formatting
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: amp:format:check
+      - "{{.BUF}} format -d --exit-code proto"
 
   proto:breaking:
-    desc: Check for breaking changes in proto files
+    desc: Check for breaking changes in proto files against main
+    dir: "{{.PROTO_FOLDER}}"
     cmds:
-      - task: amp:breaking
+      - "{{.BUF}} breaking proto --against '.git#branch=main,subdir=proto'"
 
   # ==============================================================================
   # Code Quality
@@ -214,10 +238,6 @@ tasks:
     aliases: [format]
     cmds:
       - "{{.PYTHON}} ruff format ."
-    sources:
-      - "**/*.py"
-      - .ruff.toml
-      - pyproject.toml
 
   lint:fix:
     desc: Lint and auto-fix issues
@@ -227,7 +247,7 @@ tasks:
       - "{{.PYTHON}} ruff check --fix ."
 
   lint:
-    desc: Check code quality (format + lint + type check)
+    desc: Check code quality (format + lint)
     cmds:
       - task: lint:format
       - task: lint:ruff
@@ -256,16 +276,13 @@ tasks:
   test:
     desc: Run test suite
     aliases: [t]
+    deps: [gen]
     cmds:
       - "{{.PYTHON}} pytest {{.CLI_ARGS}}"
-    sources:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - test/**/*.py
-      - tests/**/*.py
-      - pyproject.toml
 
   test:watch:
     desc: Run tests in watch mode
+    deps: [gen]
     cmds:
       - "{{.PYTHON}} pytest-watch {{.CLI_ARGS}}"
 
@@ -274,39 +291,41 @@ tasks:
   # ==============================================================================
 
   build:
-    desc: Build Python package
+    desc: Build Python package (sdist + wheel) into dist/
     aliases: [build-package]
-    deps: ["proto:ensure-init"]
+    deps: [gen]
     cmds:
-      - uv build
+      # Start from an empty dist/ so publish never re-uploads a previous version
+      - rm -rf "{{.DIST_DIR}}"
+      - uv build --out-dir "{{.DIST_DIR}}"
     sources:
-      - "{{.PACKAGE_DIR}}/**/*.py"
-      - "{{.PACKAGE_DIR}}/**/*.pyi"
+      - "{{.GEN_ROOT}}/**/*.py"
+      - "{{.GEN_ROOT}}/**/*.pyi"
       - pyproject.toml
       - README.md
     generates:
-      - dist/*.whl
-      - dist/*.tar.gz
+      - "{{.DIST_DIR}}/*.whl"
+      - "{{.DIST_DIR}}/*.tar.gz"
 
   publish:test:
     desc: Publish package to TestPyPI
     aliases: [publish-test]
     deps: [build]
     cmds:
-      - uv publish --repository-url https://test.pypi.org/legacy/ {{.CLI_ARGS}}
+      - uv publish --publish-url https://test.pypi.org/legacy/ {{.CLI_ARGS}} "{{.DIST_DIR}}/*"
     preconditions:
-      - sh: test -n "$(ls -A dist 2>/dev/null)"
-        msg: "No built packages found in dist/. Run 'task build' first."
+      - sh: test -n "$(ls -A {{.DIST_DIR}} 2>/dev/null)"
+        msg: "No built packages found in {{.DIST_DIR}}/. Run 'task build' first."
 
   publish:prod:
     desc: Publish package to PyPI
     aliases: [publish, release]
     deps: [build]
     cmds:
-      - uv publish {{.CLI_ARGS}}
+      - uv publish {{.CLI_ARGS}} "{{.DIST_DIR}}/*"
     preconditions:
-      - sh: test -n "$(ls -A dist 2>/dev/null)"
-        msg: "No built packages found in dist/. Run 'task build' first."
+      - sh: test -n "$(ls -A {{.DIST_DIR}} 2>/dev/null)"
+        msg: "No built packages found in {{.DIST_DIR}}/. Run 'task build' first."
       - sh: '[ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || echo "WARNING: Not on main branch"'
 
   # ==============================================================================
@@ -316,13 +335,13 @@ tasks:
   bump-version:
     desc: "Bump package version (type: major, minor, patch, release_type or release_num)"
     cmds:
-      - SKIP=pytest bump-my-version bump {{.CLI_ARGS}}
+      - SKIP=pytest {{.PYTHON}} bump-my-version bump {{.CLI_ARGS}}
 
   version:update-submodule:
     desc: Update proto submodule to latest dev
     internal: true
     cmds:
-      - git submodule update --remote --merge {{.PROTO_FOLDER}}
+      - git submodule update --remote --merge agentic-mesh-protocol
 
   # ==============================================================================
   # CI/CD
@@ -353,7 +372,7 @@ tasks:
     cmds:
       - command -v uv >/dev/null 2>&1 || { echo "uv not found"; exit 1; }
       - command -v task >/dev/null 2>&1 || { echo "task not found"; exit 1; }
-      - command -v rsync >/dev/null 2>&1 || { echo "rsync not found"; exit 1; }
+      - command -v buf >/dev/null 2>&1 || test -x {{.PROTO_FOLDER}}/node_modules/.bin/buf || { echo "buf not found (brew install bufbuild/buf/buf, or 'task install:amp')"; exit 1; }
       - echo "All required tools are installed"
 
   # ==============================================================================
@@ -363,7 +382,7 @@ tasks:
   clean:
     desc: Remove build artifacts and cache directories
     cmds:
-      - rm -rf dist src/{{.PACKAGE_NAME}}.egg-info
+      - rm -rf "{{.DIST_DIR}}" build
       - find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
       - find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
 

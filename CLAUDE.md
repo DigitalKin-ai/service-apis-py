@@ -13,42 +13,49 @@ This is `agentic-mesh-protocol` (import name `agentic_mesh_protocol`), a Python 
 The repository follows a multi-stage generation pipeline:
 
 1. **Proto Source**: Protocol Buffer definitions are maintained in the `agentic-mesh-protocol` git submodule (separate repository)
-2. **Code Generation**: Delegates to `amp:generate` (via Taskfile includes), which uses `buf generate` with remote plugins (protocolbuffers/python v33.0 + grpc/python v1.76.0)
-3. **File Transfer**: Generated files from `agentic-mesh-protocol/gen/python/` are copied to `src/agentic_mesh_protocol/` and `src/buf/`
-4. **Package Building**: Generated code is in `src/agentic_mesh_protocol/` with `__init__.py` files auto-created
+2. **Code Generation**: Runs `buf generate --template buf.gen.yaml` inside the submodule, with remote plugins (protocolbuffers/python v33.0 + grpc/python v1.76.0). Uses `buf` from `PATH`, falling back to the submodule's `npx --no-install buf`
+3. **File Transfer**: `gen/` is wiped and replaced by `agentic-mesh-protocol/gen/python/`
+4. **Scaffolding**: `__init__.py` in every directory, `__version__.py` (version read from `pyproject.toml`) and `py.typed` are generated too
 
 ### Key Components
 
 - **`agentic-mesh-protocol/` submodule**: Contains upstream `.proto` files and buf configuration for code generation
-- **`src/agentic_mesh_protocol/`**: Package root containing all generated code and type stubs
-- **`src/buf/`**: Generated protovalidate definitions, importable as `buf.validate`
-- **`taskfile.yml`**: Modern task automation with dependency tracking, caching, organized namespaces, and Taskfile includes for delegating proto tasks to the submodule
+- **`gen/`**: Package root (`package-dir = { "" = "gen" }` in `pyproject.toml`), 100% generated and gitignored
+- **`gen/agentic_mesh_protocol/`**: All generated code and type stubs
+- **`gen/buf/`**: Generated protovalidate definitions, importable as `buf.validate`
+- **`taskfile.yml`**: Task automation with dependency tracking and caching; the submodule's own Taskfile is included as `amp:*`
 
 ### Generated Package Structure
 
 After running `task gen`, two top-level packages are shipped, matching the absolute
 imports that buf-generated code emits (e.g. `from buf.validate import validate_pb2`):
 
-**`src/agentic_mesh_protocol/`** - one subpackage per service, each versioned under `v1/`:
-`cost`, `filesystem`, `gateway`, `module`, `registry`, `setup`, `storage`, `user_profile`.
+**`gen/agentic_mesh_protocol/`** - one subpackage per proto package, each versioned under `v1/`:
+`common`, `cost`, `filesystem`, `gateway`, `module`, `pagination`, `registry`, `setup`,
+`storage`, `user_profile`.
 
-**`src/buf/validate/`** - protovalidate definitions (generated from buf.build/bufbuild/protovalidate).
+**`gen/buf/validate/`** - protovalidate definitions (generated from buf.build/bufbuild/protovalidate).
 
 Both get `__init__.py` files created automatically for every directory, plus `.pyi` stubs
 for type checking.
 
 ### What is and is not checked in
 
-Only the hand-maintained skeleton is tracked by git: the `__init__.py` files,
-`__version__.py` and `py.typed`. Every `*_pb2.py`, `*_pb2.pyi` and `*_pb2_grpc.py` is
-gitignored and rebuilt by `task gen`. **Never edit anything under `src/` by hand** - the
-source of truth is `agentic-mesh-protocol/proto/**/*.proto`, and the next generation
-overwrites it.
+Nothing importable is tracked by git: the whole `gen/` directory, including `__init__.py`,
+`__version__.py` and `py.typed`, is rebuilt by `task gen` (see the `proto:scaffold` task
+to change those files). **Never edit anything under `gen/` by hand** - the source of truth
+is `agentic-mesh-protocol/proto/**/*.proto`, and the next generation overwrites it.
 
 `task gen` wipes `agentic-mesh-protocol/gen/python/` before running buf, because buf only
 ever writes files and never removes output for protos that were deleted upstream. Without
 the wipe, a removed service leaves an orphaned Python package behind that gets copied into
-`src/` forever.
+`gen/` forever.
+
+`task gen` is cached on the protos, the buf config and `pyproject.toml`; use
+`task gen --force` to regenerate anyway. `task test` and `task build` depend on it.
+
+Taskfile gotcha: vars of the included submodule Taskfile are global, so a root var named
+like one of them (e.g. `GEN_DIR`) is silently overridden - hence `GEN_ROOT`.
 
 ## Common Development Commands
 
@@ -198,29 +205,30 @@ task           # Default task shows list
 
 ### Code Generation Details
 
-The `task gen` command performs a 6-step pipeline:
+The `task gen` command performs a 4-step pipeline:
 
 1. **proto:init** - Ensures submodule is initialized
-2. **proto:generate** - Wipes `agentic-mesh-protocol/gen/python/`, then delegates to `amp:generate` via Taskfile includes (which executes `npx buf generate` in the submodule with both local proto files AND buf.build/bufbuild/protovalidate module)
-3. **proto:copy** - Copies files from `agentic-mesh-protocol/gen/python/` to `src/agentic_mesh_protocol/` and `src/buf/`, guarded by a precondition so an empty generation cannot `rsync --delete` the package away
-4. **proto:ensure-init** - Ensures all directories have `__init__.py` files
-5. **proto:create-namespaces** - Ensures `src/buf/` and `src/buf/validate/` have `__init__.py` so `from buf.validate import ...` resolves
-6. **build** - Builds the Python package
+2. **proto:generate** - Wipes `agentic-mesh-protocol/gen/python/`, then runs `buf generate --template buf.gen.yaml` in the submodule (local proto files AND the buf.build/bufbuild/protovalidate module)
+3. **proto:copy** - Replaces `gen/` with `agentic-mesh-protocol/gen/python/`, guarded by preconditions so an empty generation cannot wipe the package away
+4. **proto:scaffold** - Writes `gen/agentic_mesh_protocol/__init__.py` (exposes `__version__`), `__version__.py` and `py.typed`, and adds an empty `__init__.py` to every other directory so `from buf.validate import ...` resolves
 
-The pipeline uses Task's `sources`/`generates` for intelligent caching - steps are skipped if inputs haven't changed.
+Building is separate: `task build` depends on `task gen` and writes to `dist/`.
 
 ### Taskfile Includes Pattern
 
-The main taskfile uses Taskfile's `includes` feature to delegate proto-related operations to the submodule:
+The submodule's Taskfile is included (optional, overridable with `AMP_DIR`):
 
 ```yaml
 includes:
   amp:
-    taskfile: ./agentic-mesh-protocol/Taskfile.yml
-    dir: ./agentic-mesh-protocol
+    taskfile: '{{.AMP_DIR | default "agentic-mesh-protocol"}}/Taskfile.yml'
+    dir: '{{.AMP_DIR | default "agentic-mesh-protocol"}}'
+    optional: true
 ```
 
-This allows calling submodule tasks directly (e.g., `task amp:generate`, `task amp:lint`, `task amp:format`) while maintaining a clean separation of concerns.
+This exposes submodule tasks directly (e.g. `task amp:gen`, `task amp:lint`, `task amp:version:breaking`).
+They use `npx buf` and therefore need `task amp:install`; the root `proto:*` tasks call buf
+directly instead, so CI needs no Node setup.
 
 ### Testing Generated Code
 
@@ -234,10 +242,11 @@ from agentic_mesh_protocol.module.v1 import module_service_pb2, module_service_p
 
 - CI runs on pushes to `dev` and PRs to `main`/`dev`
 - Tests across Python 3.10, 3.11, 3.12, 3.13
-- Workflow: submodule checkout → buf generate (via submodule) → lint → test → build
+- Workflow: submodule checkout → `task gen` → `uv sync --locked` → `task lint` → `task test` → `task build`
 - Use `task ci` to run the full CI pipeline locally
 - Use `task ci:quick` for faster feedback (lint only)
-- Publishing to PyPI happens via GitHub Release workflow (automated version bump + publish)
+- Publishing: creating a GitHub Release runs `publish.yml` (gen → test → build `dist/` → TestPyPI → PyPI);
+  the version is whatever `pyproject.toml` says, so bump it before tagging
 
 ## Taskfile Features
 
@@ -268,7 +277,7 @@ The modernized `taskfile.yml` includes:
 ### Key Task Categories
 
 - **Setup**: `init`, `install`, `setup`, `dev`, `install:hooks`
-- **Proto**: `gen`, `proto:*` namespace (init, generate, copy, ensure-init, clean, lint, format, format:check, breaking)
+- **Proto**: `gen`, `proto:*` namespace (init, generate, copy, scaffold, clean, lint, format, format:check, breaking)
 - **Quality**: `fmt`, `lint`, `lint:*`, `pre-commit`
 - **Testing**: `test`, `test:watch`
 - **Build/Publish**: `build`, `publish:test`, `publish:prod`
@@ -282,9 +291,9 @@ The modernized `taskfile.yml` includes:
 ### Ruff Configuration
 
 `[tool.ruff]` in `pyproject.toml` only sets `target-version = "py310"` and
-`src = ["src", "test"]`; everything else is Ruff's default (88-char lines, default rule
-set). Generated `*_pb2*` files are excluded from mypy via `mypy.ini` and the pre-commit
-hook, not from Ruff.
+`src = ["gen", "test"]`; everything else is Ruff's default (88-char lines, default rule
+set). Ruff skips `gen/` because it is gitignored; it does format Python blocks in
+`README.md`. `gen/` is also excluded from mypy via `mypy.ini` and the pre-commit hook.
 
 ### Pre-commit Hooks
 
@@ -301,20 +310,19 @@ hook, not from Ruff.
 - Python 3.10+
 - uv (package manager and project manager)
 - Task (task runner)
-- rsync (for copying generated files)
-
-Note: `buf` and `protoc` are handled by the submodule via npx, no local installation needed
+- buf (`brew install bufbuild/buf/buf`; CI uses `bufbuild/buf-action`). Without it on `PATH`,
+  `task install:amp` installs the submodule's npm copy, which the taskfile falls back to
 
 ### Python Dependencies
 
 **Runtime (included in package)** - pinned exactly, because the generated code is tied to the
 protobuf/grpc versions it was built with:
 
-- grpcio==1.82.1, grpcio-tools==1.82.1
-- protobuf==7.35.1
-- googleapis-common-protos==1.75.0
+- grpcio==1.83.1, grpcio-tools==1.83.1
+- protobuf==7.36.0
+- googleapis-common-protos==1.75.2
 - protovalidate==1.2.0 (runtime validation library)
-- bump-my-version>=1.4.1
+- bump-my-version>=1.5.1
 
 **Development group (via [dependency-groups], PEP 735):**
 
