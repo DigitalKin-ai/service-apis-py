@@ -185,5 +185,3 @@ cython_debug/
 .DS_Store
 
 requirements.txt
-.envrc
-.serena
