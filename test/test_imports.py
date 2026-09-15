@@ -12,11 +12,13 @@ def test_all_proto_imports():
     from agentic_mesh_protocol.filesystem.v1 import (
         filesystem_service_pb2,
     )
+
+    # Module service imports
     from agentic_mesh_protocol.module.v1 import (
         module_service_pb2,
     )
 
-    # Module registry service imports
+    # Registry service imports
     from agentic_mesh_protocol.registry.v1 import (
         registry_service_pb2,
     )
@@ -44,3 +46,4 @@ def test_all_proto_imports():
     assert hasattr(cost_service_pb2, "DESCRIPTOR")
     assert hasattr(setup_service_pb2, "DESCRIPTOR")
     assert hasattr(user_profile_service_pb2, "DESCRIPTOR")
+    assert hasattr(registry_service_pb2, "DESCRIPTOR")

@@ -25,7 +25,7 @@ gRPC.
 
 ```python
 import agentic_mesh_protocol
-from agentic_mesh_protocol.module.v1 import information_pb2, module_service_pb2_grpc
+from agentic_mesh_protocol.module.v1 import module_dto_pb2, module_service_pb2_grpc
 ```
 
 ### Working with gRPC Services
@@ -34,17 +34,14 @@ Example for connecting to a gRPC service:
 
 ```python
 import grpc
-from agentic_mesh_protocol.module.v1 import module_service_pb2_grpc
-from agentic_mesh_protocol.module.v1 import information_pb2
+from agentic_mesh_protocol.module.v1 import module_dto_pb2, module_service_pb2_grpc
 
 # Create a gRPC channel and client stub
-channel = grpc.insecure_channel('localhost:50051')
+channel = grpc.insecure_channel("localhost:50051")
 stub = module_service_pb2_grpc.ModuleServiceStub(channel)
 
 # Create a request object
-request = information_pb2.GetModuleInputRequest(
-    module_id="my-module-id"
-)
+request = module_dto_pb2.GetModuleInputRequest(module_id="my-module-id")
 
 # Call the service
 response = stub.GetModuleInput(request)
@@ -58,9 +55,11 @@ print(response)
 - Python 3.10+
 - [uv](https://astral.sh/uv) - Modern Python package management
 - [Task](https://taskfile.dev/) - Task runner
-- rsync - For copying generated files
+- [buf](https://buf.build/docs/installation) - Proto code generation (`brew install bufbuild/buf/buf`);
+  without it on `PATH`, `task install:amp` installs the submodule's npm copy instead
 
-Note: `buf` and `protoc` are handled by the submodule via npx, no local installation needed
+The whole Python package is generated into `gen/` (gitignored) by `task gen`; nothing
+importable is checked in.
 
 ### Setup Development Environment
 

@@ -3,7 +3,7 @@
 # https://peps.python.org/pep-0440/
 
 [tool.bumpversion]
-    current_version = "1.0.2"
+    current_version = "1.0.3.dev0"
 
     allow_dirty = false # Require clean working directory
     commit      = false # Don't auto-commit (let user control git)
@@ -40,11 +40,7 @@
         replace = 'version = "{new_version}"'
         search  = 'version = "{current_version}"'
 
-    [[tool.bumpversion.files]]
-        filename = "src/agentic_mesh_protocol/__version__.py"
-        # Update the fallback version in the __version__.py file
-        replace = '__version__ = "{new_version}"'
-        search  = '__version__ = "{current_version}"'
+        # gen/agentic_mesh_protocol/__version__.py is generated from pyproject.toml by `task gen`
 
         # Command aliases for convenience (these work with: bump-my-version bump <alias>)
         # Examples:
