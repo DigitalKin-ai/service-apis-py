@@ -38,13 +38,11 @@ from agentic_mesh_protocol.module.v1 import module_service_pb2_grpc
 from agentic_mesh_protocol.module.v1 import information_pb2
 
 # Create a gRPC channel and client stub
-channel = grpc.insecure_channel('localhost:50051')
+channel = grpc.insecure_channel("localhost:50051")
 stub = module_service_pb2_grpc.ModuleServiceStub(channel)
 
 # Create a request object
-request = information_pb2.GetModuleInputRequest(
-    module_id="my-module-id"
-)
+request = information_pb2.GetModuleInputRequest(module_id="my-module-id")
 
 # Call the service
 response = stub.GetModuleInput(request)

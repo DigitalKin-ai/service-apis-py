@@ -30,7 +30,7 @@ After running `task gen`, two top-level packages are shipped, matching the absol
 imports that buf-generated code emits (e.g. `from buf.validate import validate_pb2`):
 
 **`src/agentic_mesh_protocol/`** - one subpackage per service, each versioned under `v1/`:
-`cost`, `filesystem`, `gateway`, `module`, `registry`, `setup`, `storage`, `user_profile`.
+`context`, `cost`, `filesystem`, `gateway`, `module`, `registry`, `setup`, `storage`, `user_profile`.
 
 **`src/buf/validate/`** - protovalidate definitions (generated from buf.build/bufbuild/protovalidate).
 
