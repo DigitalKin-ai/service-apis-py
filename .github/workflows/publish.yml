@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v6
@@ -16,78 +18,79 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv and Python
+        # setup-uv publishes no floating major tag (v10) since v8: pin the full version
+        uses: astral-sh/setup-uv@v10.1.0
         with:
           python-version: "3.10"
-
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          enable-cache: true
 
       - name: Install Go Task
-        uses: arduino/setup-task@v2
+        uses: arduino/setup-task@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
         with:
-          node-version: "20"
+          setup_only: true
 
-      - name: Install npm dependencies for buf
-        run: task install:amp
-
-      - name: Generate Python code from protobuf
+      - name: Generate Python package into gen/
         run: task gen
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
 
       - name: Run tests
-        run: uv run pytest
+        run: task test
+
+      - name: Build package
+        run: task build
+
+      - name: Read package version
+        id: version
+        run: echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
 
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: dist
           path: dist/
           retention-days: 1
 
   publish-test-pypi:
-      needs: build
-      runs-on: ubuntu-latest
-      environment: testpypi
-      permissions:
-        contents: read
-        id-token: write # pour trusted publishing
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      contents: read
+      id-token: write # pour trusted publishing
 
-      steps:
-        - name: Download dist artifacts
-          uses: actions/download-artifact@v4
-          with:
-            name: dist
-            path: dist/
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: dist
+          path: dist/
 
-        - name: Publish to Test PyPI
-          uses: pypa/gh-action-pypi-publish@release/v1
-          with:
-            repository-url: https://test.pypi.org/legacy/
-            skip-existing: true
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
 
-        - name: Set up Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.10"
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
 
-        - name: Wait for Test PyPI to process the package
-          run: sleep 60
+      - name: Wait for Test PyPI to process the package
+        run: sleep 60
 
-        - name: Verify Test PyPI package
-          run: |
-            python -m pip install --index-url https://test.pypi.org/simple/ --no-deps agentic-mesh-protocol
-            python -c "import agentic_mesh_protocol; print(agentic_mesh_protocol.__version__)"
+      - name: Verify Test PyPI package
+        run: |
+          python -m pip install --index-url https://test.pypi.org/simple/ --no-deps "agentic-mesh-protocol==${{ needs.build.outputs.version }}"
+          python -c "import agentic_mesh_protocol; print(agentic_mesh_protocol.__version__)"
 
   publish-pypi:
     needs: [build, publish-test-pypi]
@@ -99,7 +102,7 @@ jobs:
 
     steps:
       - name: Download dist artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: dist
           path: dist/

@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: read
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
 
@@ -22,43 +23,34 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and Python ${{ matrix.python-version }}
+        # setup-uv publishes no floating major tag (v10) since v8: pin the full version
+        uses: astral-sh/setup-uv@v10.1.0
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          enable-cache: true
 
       - name: Install Go Task
-        uses: arduino/setup-task@v2
+        uses: arduino/setup-task@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Install buf
+        uses: bufbuild/buf-action@v1
         with:
-          node-version: "20"
+          setup_only: true
 
-      - name: Install npm dependencies for buf
-        run: task install:amp
-
-      - name: Cache dependencies
-        id: cache-uv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
-
-      - name: Generate Python code from protobuf
+      - name: Generate Python package into gen/
         run: task gen
 
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
+
+      - name: Lint
+        run: task lint
 
       - name: Run tests
-        run: uv run pytest
+        run: task test
+
+      - name: Build package
+        run: task build
