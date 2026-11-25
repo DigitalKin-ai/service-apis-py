@@ -24,4 +24,4 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies: [types-protobuf]
-        exclude: ^src/(agentic_mesh_protocol|buf)/.*_pb2\.pyi?$
+        exclude: ^gen/

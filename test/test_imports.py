@@ -3,6 +3,11 @@
 
 def test_all_proto_imports():
     """Test that all generated proto modules can be imported successfully."""
+    # Context service imports
+    from agentic_mesh_protocol.context.v1 import (
+        context_service_pb2,
+    )
+
     # Cost service imports
     from agentic_mesh_protocol.cost.v1 import (
         cost_service_pb2,
@@ -12,11 +17,13 @@ def test_all_proto_imports():
     from agentic_mesh_protocol.filesystem.v1 import (
         filesystem_service_pb2,
     )
+
+    # Module service imports
     from agentic_mesh_protocol.module.v1 import (
         module_service_pb2,
     )
 
-    # Module registry service imports
+    # Registry service imports
     from agentic_mesh_protocol.registry.v1 import (
         registry_service_pb2,
     )
@@ -37,6 +44,7 @@ def test_all_proto_imports():
     )
 
     # Verify that the modules have expected attributes (basic sanity check)
+    assert hasattr(context_service_pb2, "DESCRIPTOR")
     assert hasattr(module_service_pb2, "DESCRIPTOR")
     assert hasattr(registry_service_pb2, "DESCRIPTOR")
     assert hasattr(storage_service_pb2, "DESCRIPTOR")
@@ -44,3 +52,4 @@ def test_all_proto_imports():
     assert hasattr(cost_service_pb2, "DESCRIPTOR")
     assert hasattr(setup_service_pb2, "DESCRIPTOR")
     assert hasattr(user_profile_service_pb2, "DESCRIPTOR")
+    assert hasattr(registry_service_pb2, "DESCRIPTOR")
