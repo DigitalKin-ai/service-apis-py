@@ -52,7 +52,7 @@ print(response)
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.11+
 - [uv](https://astral.sh/uv) - Modern Python package management
 - [Task](https://taskfile.dev/) - Task runner
 - [buf](https://buf.build/docs/installation) - Proto code generation (`brew install bufbuild/buf/buf`);

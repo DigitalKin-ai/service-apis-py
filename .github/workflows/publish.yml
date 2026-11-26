@@ -22,7 +22,7 @@ jobs:
         # setup-uv publishes no floating major tag (v10) since v8: pin the full version
         uses: astral-sh/setup-uv@v10.1.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           enable-cache: true
 
       - name: Install Go Task
@@ -82,7 +82,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Wait for Test PyPI to process the package
         run: sleep 60

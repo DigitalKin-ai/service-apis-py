@@ -4,6 +4,10 @@
 def test_all_proto_imports():
     """Test that all generated proto modules can be imported successfully."""
     # Context service imports
+    # Shared packages
+    from agentic_mesh_protocol.common.v1 import (
+        common_enums_pb2,
+    )
     from agentic_mesh_protocol.context.v1 import (
         context_service_pb2,
     )
@@ -18,9 +22,20 @@ def test_all_proto_imports():
         filesystem_service_pb2,
     )
 
+    # Graph service imports (public service and internal admin service)
+    from agentic_mesh_protocol.graph.v1 import (
+        graph_admin_service_pb2,
+        graph_admin_service_pb2_grpc,
+        graph_service_pb2,
+        graph_service_pb2_grpc,
+    )
+
     # Module service imports
     from agentic_mesh_protocol.module.v1 import (
         module_service_pb2,
+    )
+    from agentic_mesh_protocol.pagination.v1 import (
+        pagination_pb2,
     )
 
     # Registry service imports
@@ -44,6 +59,12 @@ def test_all_proto_imports():
     )
 
     # Verify that the modules have expected attributes (basic sanity check)
+    assert hasattr(graph_service_pb2, "DESCRIPTOR")
+    assert hasattr(graph_admin_service_pb2, "DESCRIPTOR")
+    assert hasattr(graph_service_pb2_grpc, "GraphServiceStub")
+    assert hasattr(graph_admin_service_pb2_grpc, "GraphAdminServiceStub")
+    assert hasattr(common_enums_pb2, "DESCRIPTOR")
+    assert hasattr(pagination_pb2, "DESCRIPTOR")
     assert hasattr(context_service_pb2, "DESCRIPTOR")
     assert hasattr(module_service_pb2, "DESCRIPTOR")
     assert hasattr(registry_service_pb2, "DESCRIPTOR")

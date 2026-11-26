@@ -241,7 +241,7 @@ from agentic_mesh_protocol.module.v1 import module_service_pb2, module_service_p
 ### CI/CD Pipeline
 
 - CI runs on pushes to `dev` and PRs to `main`/`dev`
-- Tests across Python 3.10, 3.11, 3.12, 3.13
+- Tests across Python 3.11, 3.12, 3.13
 - Workflow: submodule checkout → `task gen` → `uv sync --locked` → `task lint` → `task test` → `task build`
 - Use `task ci` to run the full CI pipeline locally
 - Use `task ci:quick` for faster feedback (lint only)
@@ -290,7 +290,7 @@ The modernized `taskfile.yml` includes:
 
 ### Ruff Configuration
 
-`[tool.ruff]` in `pyproject.toml` only sets `target-version = "py310"` and
+`[tool.ruff]` in `pyproject.toml` only sets `target-version = "py311"` and
 `src = ["gen", "test"]`; everything else is Ruff's default (88-char lines, default rule
 set). Ruff skips `gen/` because it is gitignored; it does format Python blocks in
 `README.md`. `gen/` is also excluded from mypy via `mypy.ini` and the pre-commit hook.
@@ -307,7 +307,7 @@ set). Ruff skips `gen/` because it is gitignored; it does format Python blocks i
 
 ### Required Tools
 
-- Python 3.10+
+- Python 3.11+
 - uv (package manager and project manager)
 - Task (task runner)
 - buf (`brew install bufbuild/buf/buf`; CI uses `bufbuild/buf-action`). Without it on `PATH`,
@@ -318,11 +318,12 @@ set). Ruff skips `gen/` because it is gitignored; it does format Python blocks i
 **Runtime (included in package)** - pinned exactly, because the generated code is tied to the
 protobuf/grpc versions it was built with:
 
-- grpcio==1.83.1, grpcio-tools==1.83.1
-- protobuf==7.36.0
-- googleapis-common-protos==1.75.2
-- protovalidate==1.2.0 (runtime validation library)
-- bump-my-version>=1.5.1
+- grpcio==1.85.4, grpcio-tools==1.85.4
+- protobuf==7.36.2
+- googleapis-common-protos==1.76.0
+- protovalidate==2.1.0 (runtime validation library; Rust extension, needs Python 3.11+, still
+  validates the `_pb2` messages generated here)
+- bump-my-version>=1.8.1
 
 **Development group (via [dependency-groups], PEP 735):**
 
@@ -333,8 +334,8 @@ Install with: `uv sync` (installs runtime + dev group by default)
 ## Package Metadata
 
 - **Distribution name**: `agentic-mesh-protocol` / **import name**: `agentic_mesh_protocol`
-- **Current version**: 1.2.0 (tracked in `pyproject.toml` and `.bumpversion.toml`; `gen/agentic_mesh_protocol/__version__.py` is generated from `pyproject.toml`)
+- **Current version**: 1.3.0.dev0 (tracked in `pyproject.toml` and `.bumpversion.toml`; `gen/agentic_mesh_protocol/__version__.py` is generated from `pyproject.toml`)
 - **License**: Proprietary
-- **Python support**: classifiers advertise 3.10-3.14; the CI matrix tests 3.10-3.13
+- **Python support**: 3.11+ (protovalidate 2 needs 3.11); classifiers advertise 3.11-3.14; the CI matrix tests 3.11-3.13
 - **Build system**: setuptools with modern pyproject.toml (PEP 517/518)
 - **Dependency management**: uv with dependency-groups (PEP 735)
